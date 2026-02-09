@@ -1,4 +1,5 @@
 using System;
+using System.Drawing;
 using System.IO;
 
 namespace ThermoSim
@@ -51,6 +52,37 @@ namespace ThermoSim
                     }
                     writer.WriteLine();
                 }
+            }
+        }
+
+        public void WritePng(Simulation sim, int step)
+        {
+            int width = sim.Nx;
+            int height = sim.Ny;
+            using (Bitmap bmp = new Bitmap(width, height))
+            {
+                for (int y = 0; y < height; ++y)
+                {
+                    for (int x = 0; x < width; ++x)
+                    {
+                        if (sim.IsSolidCell(x, height - 1 - y))
+                        {
+                            bmp.SetPixel(x, y, Color.Black);
+                            continue;
+                        }
+
+                        float t = sim.GetTemperature(x, height - 1 - y);
+                        float normalized = (_maxTempF - _minTempF) > 0.01f
+                            ? (t - _minTempF) / (_maxTempF - _minTempF)
+                            : 0.0f;
+                        normalized = Math.Max(0.0f, Math.Min(1.0f, normalized));
+                        (int r, int g, int b) = ColorMap(normalized);
+                        bmp.SetPixel(x, y, Color.FromArgb(r, g, b));
+                    }
+                }
+
+                string path = Path.Combine(_outputDir, $"heatmap_{step:D5}.png");
+                bmp.Save(path);
             }
         }
 
