@@ -10,32 +10,35 @@ namespace Box2DNG
         public Vec2 LocalAnchorB { get; }
         public Vec2 LocalAxisA { get; }
         public float ReferenceAngle { get; }
-        public bool EnableLimit { get; }
-        public float LowerTranslation { get; }
-        public float UpperTranslation { get; }
-        public bool EnableMotor { get; }
-        public float MotorSpeed { get; }
-        public float MaxMotorForce { get; }
+        public bool EnableSpring { get; private set; }
+        public float FrequencyHz { get; private set; }
+        public float DampingRatio { get; private set; }
+        public float TargetTranslation { get; private set; }
+        public bool EnableLimit { get; private set; }
+        public float LowerTranslation { get; private set; }
+        public float UpperTranslation { get; private set; }
+        public bool EnableMotor { get; private set; }
+        public float MotorSpeed { get; private set; }
+        public float MaxMotorForce { get; private set; }
+        public bool CollideConnected { get; }
+        public float ConstraintHertz { get; private set; }
+        public float ConstraintDampingRatio { get; private set; }
 
-        private Mat33 _k;
+        private Mat22 _k;
         private Vec2 _perp;
         private Vec2 _axis;
         private float _s1;
         private float _s2;
         private float _a1;
         private float _a2;
-        private Vec3 _impulse;
+        private Vec2 _impulse;
         private float _motorImpulse;
-        private float _motorMass;
-        private LimitState _limitState;
-
-        private enum LimitState
-        {
-            Inactive,
-            AtLower,
-            AtUpper,
-            Equal
-        }
+        private float _springImpulse;
+        private float _lowerImpulse;
+        private float _upperImpulse;
+        private float _axialMass;
+        private Softness _springSoftness;
+        private Softness _constraintSoftness;
 
         public PrismaticJoint(PrismaticJointDef def)
         {
@@ -45,13 +48,102 @@ namespace Box2DNG
             LocalAnchorB = def.LocalAnchorB;
             LocalAxisA = def.LocalAxisA.Normalize();
             ReferenceAngle = def.ReferenceAngle;
+            EnableSpring = def.EnableSpring;
+            FrequencyHz = def.FrequencyHz;
+            DampingRatio = def.DampingRatio;
+            TargetTranslation = def.TargetTranslation;
             EnableLimit = def.EnableLimit;
             LowerTranslation = def.LowerTranslation;
             UpperTranslation = def.UpperTranslation;
             EnableMotor = def.EnableMotor;
             MotorSpeed = def.MotorSpeed;
             MaxMotorForce = def.MaxMotorForce;
-            _limitState = LimitState.Inactive;
+            CollideConnected = def.CollideConnected;
+            ConstraintHertz = def.ConstraintHertz;
+            ConstraintDampingRatio = def.ConstraintDampingRatio;
+            _springSoftness = default;
+            _constraintSoftness = default;
+        }
+
+        public void SetSpringEnabled(bool enable)
+        {
+            if (enable != EnableSpring)
+            {
+                EnableSpring = enable;
+                _springImpulse = 0f;
+            }
+        }
+
+        public void SetSpringFrequencyHz(float hz) => FrequencyHz = MathF.Max(0f, hz);
+
+        public void SetSpringDampingRatio(float ratio) => DampingRatio = MathF.Max(0f, ratio);
+
+        public void SetTargetTranslation(float translation) => TargetTranslation = translation;
+
+        public void SetMotorEnabled(bool enable)
+        {
+            if (enable != EnableMotor)
+            {
+                EnableMotor = enable;
+                _motorImpulse = 0f;
+            }
+        }
+
+        public void SetMotorSpeed(float speed) => MotorSpeed = speed;
+
+        public void SetMaxMotorForce(float force) => MaxMotorForce = MathF.Max(0f, force);
+
+        public void SetLimitEnabled(bool enable)
+        {
+            if (enable != EnableLimit)
+            {
+                EnableLimit = enable;
+                _lowerImpulse = 0f;
+                _upperImpulse = 0f;
+            }
+        }
+
+        public void SetConstraintTuning(float hertz, float dampingRatio)
+        {
+            ConstraintHertz = MathF.Max(0f, hertz);
+            ConstraintDampingRatio = MathF.Max(0f, dampingRatio);
+        }
+
+        public void SetLimits(float lower, float upper)
+        {
+            EnableLimit = true;
+            LowerTranslation = MathF.Min(lower, upper);
+            UpperTranslation = MathF.Max(lower, upper);
+            _lowerImpulse = 0f;
+            _upperImpulse = 0f;
+        }
+
+        public float GetTranslation()
+        {
+            Vec2 axis = Rot.Mul(BodyA.Transform.Q, LocalAxisA);
+            Vec2 pA = Transform.Mul(BodyA.Transform, LocalAnchorA);
+            Vec2 pB = Transform.Mul(BodyB.Transform, LocalAnchorB);
+            Vec2 d = pB - pA;
+            return Vec2.Dot(d, axis);
+        }
+
+        public float GetSpeed()
+        {
+            Vec2 axis = Rot.Mul(BodyA.Transform.Q, LocalAxisA);
+            Vec2 rA = Rot.Mul(BodyA.Transform.Q, LocalAnchorA - BodyA.LocalCenter);
+            Vec2 rB = Rot.Mul(BodyB.Transform.Q, LocalAnchorB - BodyB.LocalCenter);
+            Vec2 d = (BodyB.GetWorldCenter() - BodyA.GetWorldCenter()) + (rB - rA);
+
+            Vec2 vA = BodyA.LinearVelocity + Vec2.Cross(BodyA.AngularVelocity, rA);
+            Vec2 vB = BodyB.LinearVelocity + Vec2.Cross(BodyB.AngularVelocity, rB);
+            Vec2 vRel = vB - vA;
+
+            return Vec2.Dot(d, Vec2.Cross(BodyA.AngularVelocity, axis)) + Vec2.Dot(axis, vRel);
+        }
+
+        public float GetMotorForce(float invDt)
+        {
+            return invDt * _motorImpulse;
         }
 
         internal void InitVelocityConstraints(float dt)
@@ -75,68 +167,46 @@ namespace Box2DNG
 
             float k11 = mA + mB + iA * _s1 * _s1 + iB * _s2 * _s2;
             float k12 = iA * _s1 + iB * _s2;
-            float k13 = iA * _s1 * _a1 + iB * _s2 * _a2;
             float k22 = iA + iB;
             if (k22 == 0f)
             {
                 // For bodies with fixed rotation, keep the matrix invertible.
                 k22 = 1f;
             }
-            float k23 = iA * _a1 + iB * _a2;
-            float k33 = mA + mB + iA * _a1 * _a1 + iB * _a2 * _a2;
-            _k = new Mat33(
-                new Vec3(k11, k12, k13),
-                new Vec3(k12, k22, k23),
-                new Vec3(k13, k23, k33));
+            _k = new Mat22(new Vec2(k11, k12), new Vec2(k12, k22));
 
             float motorMass = mA + mB + iA * _a1 * _a1 + iB * _a2 * _a2;
-            _motorMass = motorMass > 0f ? 1f / motorMass : 0f;
-
-            if (EnableLimit)
-            {
-                float translation = Vec2.Dot(_axis, d);
-                if (MathF.Abs(UpperTranslation - LowerTranslation) < 2f * Constants.LinearSlop)
-                {
-                    _limitState = LimitState.Equal;
-                }
-                else if (translation <= LowerTranslation)
-                {
-                    if (_limitState != LimitState.AtLower)
-                    {
-                        _impulse = new Vec3(_impulse.X, _impulse.Y, 0f);
-                    }
-                    _limitState = LimitState.AtLower;
-                }
-                else if (translation >= UpperTranslation)
-                {
-                    if (_limitState != LimitState.AtUpper)
-                    {
-                        _impulse = new Vec3(_impulse.X, _impulse.Y, 0f);
-                    }
-                    _limitState = LimitState.AtUpper;
-                }
-                else
-                {
-                    _limitState = LimitState.Inactive;
-                    _impulse = new Vec3(_impulse.X, _impulse.Y, 0f);
-                }
-            }
-            else
-            {
-                _limitState = LimitState.Inactive;
-                _impulse = new Vec3(_impulse.X, _impulse.Y, 0f);
-            }
+            _axialMass = motorMass > 0f ? 1f / motorMass : 0f;
 
             if (!EnableMotor)
             {
                 _motorImpulse = 0f;
             }
 
-            if (_impulse.X != 0f || _impulse.Y != 0f || _impulse.Z != 0f || _motorImpulse != 0f)
+            if (!EnableLimit)
             {
-                Vec2 P = _impulse.X * _perp + (_motorImpulse + _impulse.Z) * _axis;
-                float LA = _impulse.X * _s1 + _impulse.Y + (_motorImpulse + _impulse.Z) * _a1;
-                float LB = _impulse.X * _s2 + _impulse.Y + (_motorImpulse + _impulse.Z) * _a2;
+                _lowerImpulse = 0f;
+                _upperImpulse = 0f;
+            }
+
+            _springSoftness = Softness.Make(FrequencyHz, DampingRatio, dt);
+            if (!EnableSpring)
+            {
+                _springImpulse = 0f;
+            }
+
+            _constraintSoftness = Softness.Make(ConstraintHertz, ConstraintDampingRatio, dt);
+            if (ConstraintHertz <= 0f)
+            {
+                _constraintSoftness = new Softness(0f, 1f, 0f);
+            }
+
+            float axialImpulse = _springImpulse + _motorImpulse + _lowerImpulse - _upperImpulse;
+            if (_impulse.X != 0f || _impulse.Y != 0f || axialImpulse != 0f)
+            {
+                Vec2 P = axialImpulse * _axis + _impulse.X * _perp;
+                float LA = axialImpulse * _a1 + _impulse.X * _s1 + _impulse.Y;
+                float LB = axialImpulse * _a2 + _impulse.X * _s2 + _impulse.Y;
 
                 BodyA.LinearVelocity -= mA * P;
                 BodyA.AngularVelocity -= iA * LA;
@@ -160,11 +230,40 @@ namespace Box2DNG
             float wA = BodyA.AngularVelocity;
             float wB = BodyB.AngularVelocity;
 
-            // Solve linear motor constraint.
-            if (EnableMotor && _limitState != LimitState.Equal)
+            Vec2 d = (BodyB.GetWorldCenter() + rB) - (BodyA.GetWorldCenter() + rA);
+            _axis = Rot.Mul(BodyA.Transform.Q, LocalAxisA);
+            _perp = new Vec2(-_axis.Y, _axis.X);
+
+            _s1 = Vec2.Cross(d + rA, _perp);
+            _s2 = Vec2.Cross(rB, _perp);
+            _a1 = Vec2.Cross(d + rA, _axis);
+            _a2 = Vec2.Cross(rB, _axis);
+
+            float axialMass = mA + mB + iA * _a1 * _a1 + iB * _a2 * _a2;
+            _axialMass = axialMass > 0f ? 1f / axialMass : 0f;
+
+            if (EnableSpring)
+            {
+                float translation = Vec2.Dot(_axis, d);
+                float C = translation - TargetTranslation;
+                float Cdot = Vec2.Dot(_axis, vB - vA) + _a2 * wB - _a1 * wA;
+                float impulse = -_springSoftness.MassScale * _axialMass * (Cdot + _springSoftness.BiasRate * C)
+                                - _springSoftness.ImpulseScale * _springImpulse;
+                _springImpulse += impulse;
+
+                Vec2 P = impulse * _axis;
+                float LA = impulse * _a1;
+                float LB = impulse * _a2;
+                vA -= mA * P;
+                wA -= iA * LA;
+                vB += mB * P;
+                wB += iB * LB;
+            }
+
+            if (EnableMotor)
             {
                 float Cdot = Vec2.Dot(_axis, vB - vA) + _a2 * wB - _a1 * wA;
-                float impulse = _motorMass * (MotorSpeed - Cdot);
+                float impulse = _axialMass * (MotorSpeed - Cdot);
                 float oldImpulse = _motorImpulse;
                 float maxImpulse = MaxMotorForce * dt;
                 _motorImpulse = MathFng.Clamp(_motorImpulse + impulse, -maxImpulse, maxImpulse);
@@ -173,64 +272,124 @@ namespace Box2DNG
                 Vec2 P = impulse * _axis;
                 float LA = impulse * _a1;
                 float LB = impulse * _a2;
-
                 vA -= mA * P;
                 wA -= iA * LA;
                 vB += mB * P;
                 wB += iB * LB;
+            }
+
+            if (EnableLimit)
+            {
+                float translation = Vec2.Dot(_axis, d);
+                float speculativeDistance = 0.25f * (UpperTranslation - LowerTranslation);
+                if (speculativeDistance < 0f)
+                {
+                    speculativeDistance = 0f;
+                }
+                float invDt = dt > 0f ? 1f / dt : 0f;
+
+                {
+                    float C = translation - LowerTranslation;
+                    if (C < speculativeDistance)
+                    {
+                        float bias1 = 0f;
+                        float massScale = 1f;
+                        float impulseScale = 0f;
+                        if (C > 0f)
+                        {
+                            float safe = 1f;
+                            bias1 = MathF.Min(C, safe) * invDt;
+                        }
+                        else
+                        {
+                            bias1 = _constraintSoftness.BiasRate * C;
+                            massScale = _constraintSoftness.MassScale;
+                            impulseScale = _constraintSoftness.ImpulseScale;
+                        }
+
+                        float Cdot = Vec2.Dot(_axis, vB - vA) + _a2 * wB - _a1 * wA;
+                        float oldImpulse = _lowerImpulse;
+                        float deltaImpulse = -_axialMass * massScale * (Cdot + bias1) - impulseScale * oldImpulse;
+                        _lowerImpulse = MathF.Max(oldImpulse + deltaImpulse, 0f);
+                        deltaImpulse = _lowerImpulse - oldImpulse;
+
+                        Vec2 P = deltaImpulse * _axis;
+                        float LA = deltaImpulse * _a1;
+                        float LB = deltaImpulse * _a2;
+                        vA -= mA * P;
+                        wA -= iA * LA;
+                        vB += mB * P;
+                        wB += iB * LB;
+                    }
+                    else
+                    {
+                        _lowerImpulse = 0f;
+                    }
+                }
+
+                {
+                    float C = UpperTranslation - translation;
+                    if (C < speculativeDistance)
+                    {
+                        float bias2 = 0f;
+                        float massScale = 1f;
+                        float impulseScale = 0f;
+                        if (C > 0f)
+                        {
+                            float safe = 1f;
+                            bias2 = MathF.Min(C, safe) * invDt;
+                        }
+                        else
+                        {
+                            bias2 = _constraintSoftness.BiasRate * C;
+                            massScale = _constraintSoftness.MassScale;
+                            impulseScale = _constraintSoftness.ImpulseScale;
+                        }
+
+                        float Cdot = Vec2.Dot(_axis, vA - vB) + _a1 * wA - _a2 * wB;
+                        float oldImpulse = _upperImpulse;
+                        float deltaImpulse = -_axialMass * massScale * (Cdot + bias2) - impulseScale * oldImpulse;
+                        _upperImpulse = MathF.Max(oldImpulse + deltaImpulse, 0f);
+                        deltaImpulse = _upperImpulse - oldImpulse;
+
+                        Vec2 P = deltaImpulse * _axis;
+                        float LA = deltaImpulse * _a1;
+                        float LB = deltaImpulse * _a2;
+                        vA += mA * P;
+                        wA += iA * LA;
+                        vB -= mB * P;
+                        wB -= iB * LB;
+                    }
+                    else
+                    {
+                        _upperImpulse = 0f;
+                    }
+                }
             }
 
             Vec2 Cdot1 = new Vec2(
                 Vec2.Dot(_perp, vB - vA) + _s2 * wB - _s1 * wA,
                 wB - wA);
 
-            if (EnableLimit && _limitState != LimitState.Inactive)
-            {
-                float Cdot2 = Vec2.Dot(_axis, vB - vA) + _a2 * wB - _a1 * wA;
-                Vec3 Cdot = new Vec3(Cdot1.X, Cdot1.Y, Cdot2);
+            Vec2 C1 = new Vec2(
+                Vec2.Dot(_perp, d),
+                (BodyB.Transform.Q.Angle - BodyA.Transform.Q.Angle) - ReferenceAngle);
 
-                Vec3 f1 = _impulse;
-                Vec3 df = Solve33(_k, -Cdot);
-                _impulse = new Vec3(_impulse.X + df.X, _impulse.Y + df.Y, _impulse.Z + df.Z);
+            Vec2 bias = new Vec2(_constraintSoftness.BiasRate * C1.X, _constraintSoftness.BiasRate * C1.Y);
+            Vec2 rhs = Cdot1 + bias;
+            Vec2 impulseDelta = Solve22(_k, rhs);
+            Vec2 df = new Vec2(
+                -_constraintSoftness.MassScale * impulseDelta.X - _constraintSoftness.ImpulseScale * _impulse.X,
+                -_constraintSoftness.MassScale * impulseDelta.Y - _constraintSoftness.ImpulseScale * _impulse.Y);
+            _impulse += df;
 
-                if (_limitState == LimitState.AtLower)
-                {
-                    _impulse = new Vec3(_impulse.X, _impulse.Y, MathF.Max(_impulse.Z, 0f));
-                }
-                else if (_limitState == LimitState.AtUpper)
-                {
-                    _impulse = new Vec3(_impulse.X, _impulse.Y, MathF.Min(_impulse.Z, 0f));
-                }
-
-                Vec2 b = -Cdot1 - (_impulse.Z - f1.Z) * new Vec2(_k.Ez.X, _k.Ez.Y);
-                Vec2 f2r = Solve22(_k, b) + new Vec2(f1.X, f1.Y);
-                _impulse = new Vec3(f2r.X, f2r.Y, _impulse.Z);
-
-                df = _impulse - f1;
-
-                Vec2 P = df.X * _perp + df.Z * _axis;
-                float LA = df.X * _s1 + df.Y + df.Z * _a1;
-                float LB = df.X * _s2 + df.Y + df.Z * _a2;
-
-                vA -= mA * P;
-                wA -= iA * LA;
-                vB += mB * P;
-                wB += iB * LB;
-            }
-            else
-            {
-                Vec2 df = Solve22(_k, -Cdot1);
-                _impulse = new Vec3(_impulse.X + df.X, _impulse.Y + df.Y, _impulse.Z);
-
-                Vec2 P = df.X * _perp;
-                float LA = df.X * _s1 + df.Y;
-                float LB = df.X * _s2 + df.Y;
-
-                vA -= mA * P;
-                wA -= iA * LA;
-                vB += mB * P;
-                wB += iB * LB;
-            }
+            Vec2 Pperp = df.X * _perp;
+            float LAperp = df.X * _s1 + df.Y;
+            float LBperp = df.X * _s2 + df.Y;
+            vA -= mA * Pperp;
+            wA -= iA * LAperp;
+            vB += mB * Pperp;
+            wB += iB * LBperp;
 
             BodyA.LinearVelocity = vA;
             BodyA.AngularVelocity = wA;

@@ -11,6 +11,7 @@ namespace Box2DNG
         public float Length { get; private set; }
         public float FrequencyHz { get; private set; } = 0f;
         public float DampingRatio { get; private set; } = 0f;
+        public bool CollideConnected { get; private set; }
 
         public DistanceJointDef(Body bodyA, Body bodyB, Vec2 worldAnchorA, Vec2 worldAnchorB)
         {
@@ -24,5 +25,6 @@ namespace Box2DNG
         public DistanceJointDef WithLength(float length) { Length = length; return this; }
         public DistanceJointDef WithFrequency(float hz) { FrequencyHz = hz; return this; }
         public DistanceJointDef WithDampingRatio(float ratio) { DampingRatio = ratio; return this; }
+        public DistanceJointDef WithCollideConnected(bool collideConnected = true) { CollideConnected = collideConnected; return this; }
     }
 }

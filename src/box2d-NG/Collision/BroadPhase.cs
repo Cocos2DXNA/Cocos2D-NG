@@ -8,6 +8,8 @@ namespace Box2DNG
         private readonly DynamicTree<T> _tree = new DynamicTree<T>();
         private readonly List<int> _moveBuffer = new List<int>();
         private readonly List<Pair> _pairBuffer = new List<Pair>();
+        private readonly HashSet64 _moveSet = new HashSet64(16);
+        private readonly HashSet64 _pairSet = new HashSet64(32);
         private int _proxyCount;
 
         public int ProxyCount => _proxyCount;
@@ -48,6 +50,7 @@ namespace Box2DNG
         public void UpdatePairs(Action<T?, T?> callback)
         {
             _pairBuffer.Clear();
+            _pairSet.Clear();
 
             for (int i = 0; i < _moveBuffer.Count; i++)
             {
@@ -62,12 +65,17 @@ namespace Box2DNG
 
                     int a = Math.Min(proxyId, otherId);
                     int b = Math.Max(proxyId, otherId);
-                    _pairBuffer.Add(new Pair(a, b));
+                    ulong key = MakePairKey(a, b);
+                    if (!_pairSet.Add(key))
+                    {
+                        _pairBuffer.Add(new Pair(a, b));
+                    }
                     return true;
                 }, fatAabb);
             }
 
             _moveBuffer.Clear();
+            _moveSet.Clear();
 
             if (_pairBuffer.Count == 0)
             {
@@ -94,18 +102,23 @@ namespace Box2DNG
 
         private void BufferMove(int proxyId)
         {
-            for (int i = 0; i < _moveBuffer.Count; i++)
+            ulong key = MakeMoveKey(proxyId);
+            if (_moveSet.Add(key))
             {
-                if (_moveBuffer[i] == proxyId)
-                {
-                    return;
-                }
+                return;
             }
+
             _moveBuffer.Add(proxyId);
         }
 
         private void UnbufferMove(int proxyId)
         {
+            ulong key = MakeMoveKey(proxyId);
+            if (!_moveSet.Remove(key))
+            {
+                return;
+            }
+
             for (int i = 0; i < _moveBuffer.Count; i++)
             {
                 if (_moveBuffer[i] == proxyId)
@@ -116,6 +129,18 @@ namespace Box2DNG
                     return;
                 }
             }
+        }
+
+        private static ulong MakeMoveKey(int proxyId)
+        {
+            return (ulong)(proxyId + 1);
+        }
+
+        private static ulong MakePairKey(int proxyIdA, int proxyIdB)
+        {
+            return proxyIdA < proxyIdB
+                ? ((ulong)proxyIdA << 32) | (uint)proxyIdB
+                : ((ulong)proxyIdB << 32) | (uint)proxyIdA;
         }
 
         private readonly struct Pair : IComparable<Pair>, IEquatable<Pair>

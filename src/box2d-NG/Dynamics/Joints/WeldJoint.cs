@@ -9,6 +9,7 @@ namespace Box2DNG
         public Vec2 LocalAnchorA { get; }
         public Vec2 LocalAnchorB { get; }
         public float ReferenceAngle { get; }
+        public bool CollideConnected { get; }
 
         private Mat22 _linearMass;
         private float _angularMass;
@@ -24,6 +25,7 @@ namespace Box2DNG
             LocalAnchorA = def.LocalAnchorA;
             LocalAnchorB = def.LocalAnchorB;
             ReferenceAngle = def.ReferenceAngle;
+            CollideConnected = def.CollideConnected;
         }
 
         internal void InitVelocityConstraints(float dt)

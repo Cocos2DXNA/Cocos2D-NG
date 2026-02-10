@@ -9,6 +9,7 @@ namespace Box2DNG
         public float Restitution { get; private set; }
         public float Density { get; private set; } = 1f;
         public bool IsSensor { get; private set; }
+        public bool EnableSensorEvents { get; private set; } = true;
         public Filter Filter { get; private set; } = Filter.Default;
         public object? UserData { get; private set; }
 
@@ -22,6 +23,7 @@ namespace Box2DNG
         public FixtureDef WithRestitution(float restitution) { Restitution = restitution; return this; }
         public FixtureDef WithDensity(float density) { Density = density; return this; }
         public FixtureDef AsSensor(bool isSensor = true) { IsSensor = isSensor; return this; }
+        public FixtureDef WithSensorEvents(bool enable = true) { EnableSensorEvents = enable; return this; }
         public FixtureDef WithFilter(Filter filter) { Filter = filter; return this; }
         public FixtureDef WithUserData(object? userData) { UserData = userData; return this; }
     }

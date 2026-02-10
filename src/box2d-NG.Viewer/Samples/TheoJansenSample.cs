@@ -10,6 +10,7 @@ namespace Box2DNG.Viewer.Samples
         private RevoluteJoint? _motorJoint;
         private float _motorSpeed = 2f;
         private bool _motorOn = true;
+        private Filter _groupFilter = Filter.Default;
 
         public override string Name => "TheoJansen";
 
@@ -29,9 +30,11 @@ namespace Box2DNG.Viewer.Samples
                 body.CreateFixture(new FixtureDef(shape).WithDensity(1f));
             }
 
+            _groupFilter = new Filter(Filter.Default.CategoryBits, Filter.Default.MaskBits, -1);
+
             {
                 PolygonShape shape = new PolygonShape(BuildBoxVertices(2.5f, 1f, Vec2.Zero, 0f));
-                FixtureDef fd = new FixtureDef(shape).WithDensity(1f).WithFilter(new Filter(1, ulong.MaxValue, -1));
+                FixtureDef fd = new FixtureDef(shape).WithDensity(1f).WithFilter(_groupFilter);
                 Body body = world.CreateBody(new BodyDef().AsDynamic().At(pivot + _offset));
                 body.CreateFixture(fd);
                 _chassis = body;
@@ -39,7 +42,7 @@ namespace Box2DNG.Viewer.Samples
 
             {
                 CircleShape shape = new CircleShape(1.6f);
-                FixtureDef fd = new FixtureDef(shape).WithDensity(1f).WithFilter(new Filter(1, ulong.MaxValue, -1));
+                FixtureDef fd = new FixtureDef(shape).WithDensity(1f).WithFilter(_groupFilter);
                 Body body = world.CreateBody(new BodyDef().AsDynamic().At(pivot + _offset));
                 body.CreateFixture(fd);
                 _wheel = body;
@@ -51,7 +54,8 @@ namespace Box2DNG.Viewer.Samples
             }
 
             RevoluteJointDef jd = new RevoluteJointDef(_wheel, _chassis, pivot + _offset)
-                .WithMotor(_motorOn, _motorSpeed, 400f);
+                .WithMotor(_motorOn, _motorSpeed, 400f)
+                .WithCollideConnected(false);
             _motorJoint = world.CreateJoint(jd);
 
             Vec2 wheelAnchor = pivot + new Vec2(0f, -0.8f);
@@ -107,13 +111,6 @@ namespace Box2DNG.Viewer.Samples
             Vec2 p5 = new Vec2(6.0f * s, 1.5f);
             Vec2 p6 = new Vec2(2.5f * s, 3.7f);
 
-            FixtureDef fd1 = new FixtureDef(new PolygonShape(Array.Empty<Vec2>()))
-                .WithFilter(new Filter(1, ulong.MaxValue, -1))
-                .WithDensity(1f);
-            FixtureDef fd2 = new FixtureDef(new PolygonShape(Array.Empty<Vec2>()))
-                .WithFilter(new Filter(1, ulong.MaxValue, -1))
-                .WithDensity(1f);
-
             PolygonShape poly1;
             PolygonShape poly2;
 
@@ -128,8 +125,8 @@ namespace Box2DNG.Viewer.Samples
                 poly2 = new PolygonShape(new[] { Vec2.Zero, p6 - p4, p5 - p4 });
             }
 
-            fd1 = new FixtureDef(poly1).WithDensity(1f).WithFilter(new Filter(1, ulong.MaxValue, -1));
-            fd2 = new FixtureDef(poly2).WithDensity(1f).WithFilter(new Filter(1, ulong.MaxValue, -1));
+            FixtureDef fd1 = new FixtureDef(poly1).WithDensity(1f).WithFilter(_groupFilter);
+            FixtureDef fd2 = new FixtureDef(poly2).WithDensity(1f).WithFilter(_groupFilter);
 
             Body body1 = world.CreateBody(new BodyDef().AsDynamic().At(_offset).WithAngularDamping(10f));
             Body body2 = world.CreateBody(new BodyDef().AsDynamic().At(p4 + _offset).WithAngularDamping(10f));
@@ -138,25 +135,30 @@ namespace Box2DNG.Viewer.Samples
 
             DistanceJointDef djd = new DistanceJointDef(body1, body2, p2 + _offset, p5 + _offset)
                 .WithDampingRatio(0.5f)
-                .WithFrequency(10f);
+                .WithFrequency(10f)
+                .WithCollideConnected(false);
             world.CreateJoint(djd);
 
             djd = new DistanceJointDef(body1, body2, p3 + _offset, p4 + _offset)
                 .WithDampingRatio(0.5f)
-                .WithFrequency(10f);
+                .WithFrequency(10f)
+                .WithCollideConnected(false);
             world.CreateJoint(djd);
 
             djd = new DistanceJointDef(body1, _wheel, p3 + _offset, wheelAnchor + _offset)
                 .WithDampingRatio(0.5f)
-                .WithFrequency(10f);
+                .WithFrequency(10f)
+                .WithCollideConnected(false);
             world.CreateJoint(djd);
 
             djd = new DistanceJointDef(body2, _wheel, p6 + _offset, wheelAnchor + _offset)
                 .WithDampingRatio(0.5f)
-                .WithFrequency(10f);
+                .WithFrequency(10f)
+                .WithCollideConnected(false);
             world.CreateJoint(djd);
 
-            RevoluteJointDef rjd = new RevoluteJointDef(body2, _chassis, p4 + _offset);
+            RevoluteJointDef rjd = new RevoluteJointDef(body2, _chassis, p4 + _offset)
+                .WithCollideConnected(false);
             world.CreateJoint(rjd);
         }
 

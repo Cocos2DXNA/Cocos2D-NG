@@ -11,6 +11,7 @@ namespace Box2DNG
         public float Length { get; private set; }
         public float FrequencyHz { get; }
         public float DampingRatio { get; }
+        public bool CollideConnected { get; }
 
         private float _impulse;
         private float _mass;
@@ -27,6 +28,7 @@ namespace Box2DNG
             Length = def.Length;
             FrequencyHz = def.FrequencyHz;
             DampingRatio = def.DampingRatio;
+            CollideConnected = def.CollideConnected;
         }
 
         internal void InitVelocityConstraints(float dt)
@@ -60,6 +62,15 @@ namespace Box2DNG
             {
                 _gamma = 0f;
                 _bias = 0f;
+            }
+
+            if (_impulse != 0f)
+            {
+                Vec2 P = _impulse * _u;
+                BodyA.LinearVelocity -= BodyA.InverseMass * P;
+                BodyA.AngularVelocity -= BodyA.InverseInertia * Vec2.Cross(rA, P);
+                BodyB.LinearVelocity += BodyB.InverseMass * P;
+                BodyB.AngularVelocity += BodyB.InverseInertia * Vec2.Cross(rB, P);
             }
         }
 

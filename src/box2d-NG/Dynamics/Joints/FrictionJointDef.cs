@@ -10,6 +10,7 @@ namespace Box2DNG
         public Vec2 LocalAnchorB { get; private set; }
         public float MaxForce { get; private set; }
         public float MaxTorque { get; private set; }
+        public bool CollideConnected { get; private set; }
 
         public FrictionJointDef(Body bodyA, Body bodyB, Vec2 worldAnchor)
         {
@@ -21,5 +22,6 @@ namespace Box2DNG
 
         public FrictionJointDef WithMaxForce(float maxForce) { MaxForce = MathF.Max(0f, maxForce); return this; }
         public FrictionJointDef WithMaxTorque(float maxTorque) { MaxTorque = MathF.Max(0f, maxTorque); return this; }
+        public FrictionJointDef WithCollideConnected(bool collideConnected = true) { CollideConnected = collideConnected; return this; }
     }
 }

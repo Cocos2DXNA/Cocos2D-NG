@@ -17,6 +17,7 @@ namespace Box2DNG
         public bool EnableLimit { get; private set; }
         public float LowerTranslation { get; private set; }
         public float UpperTranslation { get; private set; }
+        public bool CollideConnected { get; private set; }
 
         public WheelJointDef(Body bodyA, Body bodyB, Vec2 worldAnchor, Vec2 worldAxis)
         {
@@ -48,6 +49,12 @@ namespace Box2DNG
             EnableLimit = enable;
             LowerTranslation = MathF.Min(lower, upper);
             UpperTranslation = MathF.Max(lower, upper);
+            return this;
+        }
+
+        public WheelJointDef WithCollideConnected(bool collideConnected = true)
+        {
+            CollideConnected = collideConnected;
             return this;
         }
     }

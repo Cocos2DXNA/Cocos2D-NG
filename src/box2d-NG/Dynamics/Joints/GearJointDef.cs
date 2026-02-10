@@ -7,6 +7,7 @@ namespace Box2DNG
         public object JointA { get; private set; }
         public object JointB { get; private set; }
         public float Ratio { get; private set; } = 1f;
+        public bool CollideConnected { get; private set; }
 
         public GearJointDef(object jointA, object jointB, float ratio = 1f)
         {
@@ -18,6 +19,12 @@ namespace Box2DNG
         public GearJointDef WithRatio(float ratio)
         {
             Ratio = ratio;
+            return this;
+        }
+
+        public GearJointDef WithCollideConnected(bool collideConnected = true)
+        {
+            CollideConnected = collideConnected;
             return this;
         }
     }

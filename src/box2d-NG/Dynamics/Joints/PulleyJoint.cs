@@ -13,6 +13,7 @@ namespace Box2DNG
         public float LengthA { get; private set; }
         public float LengthB { get; private set; }
         public float Ratio { get; }
+        public bool CollideConnected { get; }
 
         private Vec2 _uA;
         private Vec2 _uB;
@@ -30,6 +31,7 @@ namespace Box2DNG
             LengthA = def.LengthA;
             LengthB = def.LengthB;
             Ratio = def.Ratio;
+            CollideConnected = def.CollideConnected;
         }
 
         internal void InitVelocityConstraints(float dt)

@@ -11,6 +11,7 @@ namespace Box2DNG
         public float MaxForce { get; private set; } = 1f;
         public float MaxTorque { get; private set; } = 1f;
         public float CorrectionFactor { get; private set; } = 0.3f;
+        public bool CollideConnected { get; private set; }
 
         public MotorJointDef(Body bodyA, Body bodyB)
         {
@@ -26,5 +27,6 @@ namespace Box2DNG
         public MotorJointDef WithMaxForce(float value) { MaxForce = MathF.Max(0f, value); return this; }
         public MotorJointDef WithMaxTorque(float value) { MaxTorque = MathF.Max(0f, value); return this; }
         public MotorJointDef WithCorrectionFactor(float value) { CorrectionFactor = MathFng.Clamp(value, 0f, 1f); return this; }
+        public MotorJointDef WithCollideConnected(bool collideConnected = true) { CollideConnected = collideConnected; return this; }
     }
 }

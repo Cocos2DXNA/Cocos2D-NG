@@ -18,6 +18,7 @@ namespace Box2DNG
         public bool EnableContinuous { get; private set; } = true;
         public bool EnableContactSoftening { get; private set; } = true;
         public bool UseSoftConstraints { get; private set; } = true;
+        public bool EnableContactHertzClamp { get; private set; }
         public bool EnableContactSolverSimd { get; private set; }
         public int MaxSubSteps { get; private set; } = 16;
         public int VelocityIterations { get; private set; } = 12;
@@ -42,6 +43,7 @@ namespace Box2DNG
         public WorldDef EnableContinuousCollision(bool enable) { EnableContinuous = enable; return this; }
         public WorldDef EnableSoftening(bool enable) { EnableContactSoftening = enable; return this; }
         public WorldDef UseSoftConstraintsSolver(bool enable) { UseSoftConstraints = enable; return this; }
+        public WorldDef EnableContactHertzClamping(bool enable) { EnableContactHertzClamp = enable; return this; }
         public WorldDef EnableContactSolverSimdPath(bool enable) { EnableContactSolverSimd = enable; return this; }
         public WorldDef WithMaxSubSteps(int steps) { MaxSubSteps = Math.Max(1, steps); return this; }
         public WorldDef WithVelocityIterations(int iterations) { VelocityIterations = Math.Max(1, iterations); return this; }

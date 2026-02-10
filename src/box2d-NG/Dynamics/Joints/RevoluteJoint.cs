@@ -15,6 +15,7 @@ namespace Box2DNG
         public bool EnableLimit { get; private set; }
         public float LowerAngle { get; private set; }
         public float UpperAngle { get; private set; }
+        public bool CollideConnected { get; }
 
         private Vec2 _impulse;
         private float _motorImpulse;
@@ -37,6 +38,7 @@ namespace Box2DNG
             EnableLimit = def.EnableLimit;
             LowerAngle = def.LowerAngle;
             UpperAngle = def.UpperAngle;
+            CollideConnected = def.CollideConnected;
         }
 
         public void SetMotorEnabled(bool enable) => EnableMotor = enable;

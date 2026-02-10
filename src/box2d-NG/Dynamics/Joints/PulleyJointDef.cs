@@ -13,6 +13,7 @@ namespace Box2DNG
         public float LengthA { get; private set; }
         public float LengthB { get; private set; }
         public float Ratio { get; private set; } = 1f;
+        public bool CollideConnected { get; private set; }
 
         public PulleyJointDef(Body bodyA, Body bodyB, Vec2 groundAnchorA, Vec2 groundAnchorB, Vec2 anchorA, Vec2 anchorB, float ratio = 1f)
         {
@@ -30,6 +31,12 @@ namespace Box2DNG
         public PulleyJointDef WithRatio(float ratio)
         {
             Ratio = MathF.Max(Constants.Epsilon, ratio);
+            return this;
+        }
+
+        public PulleyJointDef WithCollideConnected(bool collideConnected = true)
+        {
+            CollideConnected = collideConnected;
             return this;
         }
     }

@@ -93,6 +93,7 @@ namespace Box2DNG.Viewer
                 }
             }
 
+            DrawPrismaticJoints(e.Graphics);
             DrawDiagnostics(e.Graphics);
         }
 
@@ -186,6 +187,53 @@ namespace Box2DNG.Viewer
             using Brush fg = new SolidBrush(Color.White);
             g.FillRectangle(bg, rect);
             g.DrawString(text, font, fg, rect.X + 4f, rect.Y + 3f);
+        }
+
+        private void DrawPrismaticJoints(Graphics g)
+        {
+            if (_world.PrismaticJoints.Count == 0)
+            {
+                return;
+            }
+
+            using Pen axisPen = new Pen(Color.FromArgb(120, 80, 80, 80), 2f);
+            using Pen limitPen = new Pen(Color.FromArgb(180, 70, 160, 70), 2f);
+            using Brush pointBrush = new SolidBrush(Color.FromArgb(200, 80, 80, 80));
+
+            foreach (PrismaticJoint joint in _world.PrismaticJoints)
+            {
+                Vec2 anchorA = joint.BodyA.GetWorldPoint(joint.LocalAnchorA);
+                Vec2 anchorB = joint.BodyB.GetWorldPoint(joint.LocalAnchorB);
+                Vec2 axis = Rot.Mul(joint.BodyA.Transform.Q, joint.LocalAxisA).Normalize();
+
+                PointF pA = ToScreen(anchorA);
+                PointF pB = ToScreen(anchorB);
+                g.DrawLine(axisPen, pA, pB);
+
+                float scale = 0.25f;
+                Vec2 perp = new Vec2(-axis.Y, axis.X);
+                Vec2 p1 = anchorA - scale * perp;
+                Vec2 p2 = anchorA + scale * perp;
+                g.DrawLine(axisPen, ToScreen(p1), ToScreen(p2));
+
+                if (joint.EnableLimit)
+                {
+                    Vec2 lower = anchorA + joint.LowerTranslation * axis;
+                    Vec2 upper = anchorA + joint.UpperTranslation * axis;
+                    g.DrawLine(limitPen, ToScreen(lower), ToScreen(upper));
+
+                    Vec2 lp1 = lower - scale * perp;
+                    Vec2 lp2 = lower + scale * perp;
+                    Vec2 up1 = upper - scale * perp;
+                    Vec2 up2 = upper + scale * perp;
+                    g.DrawLine(limitPen, ToScreen(lp1), ToScreen(lp2));
+                    g.DrawLine(limitPen, ToScreen(up1), ToScreen(up2));
+                }
+
+                float radius = 3f;
+                g.FillEllipse(pointBrush, pA.X - radius, pA.Y - radius, radius * 2f, radius * 2f);
+                g.FillEllipse(pointBrush, pB.X - radius, pB.Y - radius, radius * 2f, radius * 2f);
+            }
         }
     }
 }

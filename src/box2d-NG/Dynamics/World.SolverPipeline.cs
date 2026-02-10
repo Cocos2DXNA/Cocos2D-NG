@@ -23,13 +23,20 @@ namespace Box2DNG
 
                 float dtRatio = _world._prevTimeStep > 0f ? timeStep / _world._prevTimeStep : 1f;
                 _world._prevTimeStep = timeStep;
-
-                _world.UpdateContacts();
+                if (_world._def.EnableContactHertzClamp)
+                {
+                    float invH = 1f / timeStep;
+                    _world._stepContactHertz = MathF.Min(_world._def.ContactHertz, 0.125f * invH);
+                }
+                else
+                {
+                    _world._stepContactHertz = 0f;
+                }
+                _world.UpdateContacts(includeSensors: false);
                 if (_world._islandsDirty || _world._lastIslands.Count == 0)
                 {
                     _world.BuildIslands(awakeOnly: _world._def.EnableSleep);
                 }
-
                 IntegrateVelocities(timeStep);
                 SolveVelocityConstraints(timeStep, dtRatio);
                 _world.RaiseContactImpulseEvents();
@@ -37,6 +44,7 @@ namespace Box2DNG
                 SolvePositionConstraints(timeStep);
                 _world.SyncSweeps();
                 FinalizeStep(timeStep);
+                _world.SplitAwakeIslandsIfNeeded();
             }
 
             private void IntegrateVelocities(float timeStep)
@@ -135,6 +143,10 @@ namespace Box2DNG
                         {
                             continue;
                         }
+                        if (_world.TryGetJointSolverSetId(handle, out int setId) && setId != 0)
+                        {
+                            continue;
+                        }
                         InitJointVelocityConstraints(handle, timeStep);
                     }
                     for (int iter = 0; iter < _world._def.VelocityIterations; ++iter)
@@ -155,6 +167,10 @@ namespace Box2DNG
                             {
                                 continue;
                             }
+                            if (_world.TryGetJointSolverSetId(handle, out int setId) && setId != 0)
+                            {
+                                continue;
+                            }
                             SolveJointVelocityConstraints(handle, timeStep);
                         }
                     }
@@ -169,10 +185,11 @@ namespace Box2DNG
                     {
                         _world._contactSolver.ApplyRestitution(_world._def.RestitutionThreshold);
                         _world._contactSolver.StoreImpulses();
+                        aggregateStats = SumStats(aggregateStats, _world._contactSolver.GetStats());
                     }
                 }
 
-                _world._lastContactSolverStats = useSimd ? aggregateStats : new World.ContactSolverStats();
+                _world._lastContactSolverStats = aggregateStats;
             }
 
             private void IntegratePositions(float timeStep)
@@ -250,6 +267,10 @@ namespace Box2DNG
                             {
                                 continue;
                             }
+                            if (_world.TryGetJointSolverSetId(handle, out int setId) && setId != 0)
+                            {
+                                continue;
+                            }
                             SolveJointPositionConstraints(handle);
                         }
                     }
@@ -263,6 +284,7 @@ namespace Box2DNG
                     _world.UpdateSleep(timeStep);
                 }
                 _world.SolveTOI();
+                _world.UpdateSensors();
             }
 
             private static World.ContactSolverStats SumStats(World.ContactSolverStats a, World.ContactSolverStats b)
@@ -282,7 +304,7 @@ namespace Box2DNG
                 for (int i = 0; i < contacts.Count; ++i)
                 {
                     Contact contact = contacts[i];
-                    if (contact.SolverSetType == SolverSetType.Awake)
+                    if (contact.SolverSetType == SolverSetType.Awake && contact.SolverSetId == 0)
                     {
                         _awakeContactsScratch.Add(contact);
                     }

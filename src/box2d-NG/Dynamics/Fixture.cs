@@ -10,6 +10,7 @@ namespace Box2DNG
         public float Restitution { get; internal set; }
         public float Density { get; internal set; }
         public bool IsSensor { get; internal set; }
+        public bool EnableSensorEvents { get; internal set; } = true;
         public Filter Filter { get; internal set; }
         public object? UserData { get; internal set; }
         public int ProxyId { get; internal set; } = -1;
@@ -24,6 +25,11 @@ namespace Box2DNG
             Density = 1f;
             IsSensor = false;
             Filter = Filter.Default;
+        }
+
+        public void SetSensorEventsEnabled(bool enable)
+        {
+            EnableSensorEvents = enable;
         }
     }
 }

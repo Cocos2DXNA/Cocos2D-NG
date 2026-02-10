@@ -19,6 +19,8 @@ namespace Box2DNG
         public int ToiCount { get; private set; }
         public bool HasToi { get; private set; }
         internal SolverSetType SolverSetType { get; set; } = SolverSetType.Awake;
+        internal int SolverSetId { get; set; } = 0;
+        internal int ColorIndex { get; set; } = -1;
 
         public Contact(Shape shapeA, Transform transformA, Shape shapeB, Transform transformB)
         {

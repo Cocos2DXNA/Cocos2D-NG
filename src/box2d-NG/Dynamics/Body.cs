@@ -295,9 +295,11 @@ namespace Box2DNG
             Vec2 oldCenter = GetWorldCenter();
             LocalCenter = localCenter;
             Vec2 newCenter = GetWorldCenter();
-            Transform = new Transform(Transform.P + (oldCenter - newCenter), Transform.Q);
-            Vec2 worldCenter = GetWorldCenter();
-            Sweep = new Sweep(LocalCenter, worldCenter, worldCenter, Transform.Q.Angle, Transform.Q.Angle, 0f);
+            if (!oldCenter.Equals(newCenter))
+            {
+                LinearVelocity += Vec2.Cross(AngularVelocity, newCenter - oldCenter);
+            }
+            Sweep = new Sweep(LocalCenter, newCenter, newCenter, Transform.Q.Angle, Transform.Q.Angle, 0f);
         }
 
         private void ResetMassData()

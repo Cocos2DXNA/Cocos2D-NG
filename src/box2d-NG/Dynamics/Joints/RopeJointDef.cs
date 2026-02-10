@@ -9,6 +9,7 @@ namespace Box2DNG
         public Vec2 LocalAnchorA { get; private set; }
         public Vec2 LocalAnchorB { get; private set; }
         public float MaxLength { get; private set; }
+        public bool CollideConnected { get; private set; }
 
         public RopeJointDef(Body bodyA, Body bodyB, Vec2 worldAnchorA, Vec2 worldAnchorB)
         {
@@ -22,6 +23,12 @@ namespace Box2DNG
         public RopeJointDef WithMaxLength(float maxLength)
         {
             MaxLength = MathF.Max(Constants.LinearSlop, maxLength);
+            return this;
+        }
+
+        public RopeJointDef WithCollideConnected(bool collideConnected = true)
+        {
+            CollideConnected = collideConnected;
             return this;
         }
     }

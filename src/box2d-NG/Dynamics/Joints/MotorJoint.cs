@@ -11,6 +11,7 @@ namespace Box2DNG
         public float MaxForce { get; }
         public float MaxTorque { get; }
         public float CorrectionFactor { get; }
+        public bool CollideConnected { get; }
 
         private Mat22 _linearMass;
         private float _angularMass;
@@ -30,6 +31,7 @@ namespace Box2DNG
             MaxForce = def.MaxForce;
             MaxTorque = def.MaxTorque;
             CorrectionFactor = def.CorrectionFactor;
+            CollideConnected = def.CollideConnected;
         }
 
         internal void InitVelocityConstraints(float dt)

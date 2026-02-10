@@ -9,6 +9,13 @@ namespace Box2DNG
         public Vec2 LocalAnchorA { get; private set; }
         public Vec2 LocalAnchorB { get; private set; }
         public float ReferenceAngle { get; private set; }
+        public bool CollideConnected { get; private set; }
+
+        public WeldJointDef WithCollideConnected(bool collideConnected = true)
+        {
+            CollideConnected = collideConnected;
+            return this;
+        }
 
         public WeldJointDef(Body bodyA, Body bodyB, Vec2 worldAnchor)
         {

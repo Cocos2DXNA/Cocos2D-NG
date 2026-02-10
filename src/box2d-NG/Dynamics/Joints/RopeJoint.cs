@@ -9,6 +9,7 @@ namespace Box2DNG
         public Vec2 LocalAnchorA { get; }
         public Vec2 LocalAnchorB { get; }
         public float MaxLength { get; private set; }
+        public bool CollideConnected { get; }
 
         private Vec2 _u;
         private Vec2 _rA;
@@ -24,6 +25,7 @@ namespace Box2DNG
             LocalAnchorA = def.LocalAnchorA;
             LocalAnchorB = def.LocalAnchorB;
             MaxLength = def.MaxLength;
+            CollideConnected = def.CollideConnected;
         }
 
         public void SetMaxLength(float maxLength)

@@ -15,6 +15,7 @@ namespace Box2DNG
         public Body BodyC { get; }
         public Body BodyD { get; }
         public float Ratio { get; }
+        public bool CollideConnected { get; }
 
         private readonly JointKind _typeA;
         private readonly JointKind _typeB;
@@ -76,6 +77,7 @@ namespace Box2DNG
             }
 
             Ratio = def.Ratio;
+            CollideConnected = def.CollideConnected;
 
             float coordA = GetCoordinateA();
             float coordB = GetCoordinateB();

@@ -8,12 +8,14 @@ namespace Box2DNG
         public event Action<ContactEvents>? ContactEvents;
         public event Action<ContactImpulseEvents>? ContactImpulseEvents;
         public event Action<SensorEvents>? SensorEvents;
+        public event Action<SensorHitEvents>? SensorHitEvents;
         public event Action<JointEvents>? JointEvents;
 
         internal void Raise(BodyEvents events) => BodyEvents?.Invoke(events);
         internal void Raise(ContactEvents events) => ContactEvents?.Invoke(events);
         internal void Raise(ContactImpulseEvents events) => ContactImpulseEvents?.Invoke(events);
         internal void Raise(SensorEvents events) => SensorEvents?.Invoke(events);
+        internal void Raise(SensorHitEvents events) => SensorHitEvents?.Invoke(events);
         internal void Raise(JointEvents events) => JointEvents?.Invoke(events);
     }
 
@@ -60,6 +62,16 @@ namespace Box2DNG
         {
             Begin = begin;
             End = end;
+        }
+    }
+
+    public readonly struct SensorHitEvents
+    {
+        public readonly SensorHitEvent[] Events;
+
+        public SensorHitEvents(SensorHitEvent[] events)
+        {
+            Events = events;
         }
     }
 
@@ -168,6 +180,24 @@ namespace Box2DNG
         {
             UserDataA = userDataA;
             UserDataB = userDataB;
+        }
+    }
+
+    public readonly struct SensorHitEvent
+    {
+        public readonly object? SensorUserData;
+        public readonly object? VisitorUserData;
+        public readonly Vec2 Point;
+        public readonly Vec2 Normal;
+        public readonly float Fraction;
+
+        public SensorHitEvent(object? sensorUserData, object? visitorUserData, Vec2 point, Vec2 normal, float fraction)
+        {
+            SensorUserData = sensorUserData;
+            VisitorUserData = visitorUserData;
+            Point = point;
+            Normal = normal;
+            Fraction = fraction;
         }
     }
 

@@ -15,6 +15,7 @@ namespace Box2DNG
         public bool EnableLimit { get; private set; }
         public float LowerAngle { get; private set; }
         public float UpperAngle { get; private set; }
+        public bool CollideConnected { get; private set; }
 
         public RevoluteJointDef(Body bodyA, Body bodyB, Vec2 worldAnchor)
         {
@@ -38,6 +39,12 @@ namespace Box2DNG
             EnableLimit = enable;
             LowerAngle = MathF.Min(lowerAngle, upperAngle);
             UpperAngle = MathF.Max(lowerAngle, upperAngle);
+            return this;
+        }
+
+        public RevoluteJointDef WithCollideConnected(bool collideConnected = true)
+        {
+            CollideConnected = collideConnected;
             return this;
         }
     }

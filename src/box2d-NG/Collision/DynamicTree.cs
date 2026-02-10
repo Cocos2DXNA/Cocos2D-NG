@@ -21,7 +21,7 @@ namespace Box2DNG
         }
 
         private readonly List<Node> _nodes = new List<Node>();
-        private readonly Stack<int> _freeList = new Stack<int>();
+        private readonly IdPool _nodeIdPool = new IdPool();
         private int _root = -1;
 
         public int CreateProxy(Aabb aabb, T userData)
@@ -212,21 +212,20 @@ namespace Box2DNG
 
         private int AllocateNode()
         {
-            if (_freeList.Count > 0)
+            int id = _nodeIdPool.Alloc();
+            if (id == _nodes.Count)
             {
-                int id = _freeList.Pop();
-                Node node = _nodes[id];
-                node.Parent = -1;
-                node.Child1 = -1;
-                node.Child2 = -1;
-                node.Height = 0;
-                node.UserData = default;
-                _nodes[id] = node;
-                return id;
+                _nodes.Add(new Node());
             }
 
-            _nodes.Add(new Node());
-            return _nodes.Count - 1;
+            Node node = _nodes[id];
+            node.Parent = -1;
+            node.Child1 = -1;
+            node.Child2 = -1;
+            node.Height = 0;
+            node.UserData = default;
+            _nodes[id] = node;
+            return id;
         }
 
         private void FreeNode(int id)
@@ -235,7 +234,7 @@ namespace Box2DNG
             node.Height = -1;
             node.UserData = default;
             _nodes[id] = node;
-            _freeList.Push(id);
+            _nodeIdPool.Free(id);
         }
 
         private void InsertLeaf(int leaf)

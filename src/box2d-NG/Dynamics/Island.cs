@@ -9,6 +9,7 @@ namespace Box2DNG
         public readonly List<JointHandle> Joints = new List<JointHandle>();
         public int Id { get; internal set; }
         public bool IsAwake { get; set; } = true;
+        public int ConstraintRemoveCount { get; internal set; }
     }
 
     public readonly struct JointHandle

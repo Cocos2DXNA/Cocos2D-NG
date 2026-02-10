@@ -17,6 +17,7 @@ namespace Box2DNG
         public bool EnableLimit { get; private set; }
         public float LowerTranslation { get; private set; }
         public float UpperTranslation { get; private set; }
+        public bool CollideConnected { get; }
 
         private float _perpMass;
         private float _springMass;
@@ -43,6 +44,7 @@ namespace Box2DNG
             EnableLimit = def.EnableLimit;
             LowerTranslation = def.LowerTranslation;
             UpperTranslation = def.UpperTranslation;
+            CollideConnected = def.CollideConnected;
         }
 
         public void SetMotorEnabled(bool enable) => EnableMotor = enable;

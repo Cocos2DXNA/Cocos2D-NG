@@ -76,6 +76,124 @@ namespace Box2DNG.Tests
         }
 
         [TestMethod]
+        public void PrismaticJoint_SpringTracksTargetTranslation()
+        {
+            World world = new World(new WorldDef().WithGravity(new Vec2(0f, 0f)));
+            Body bodyA = world.CreateBody(new BodyDef().AsStatic().At(0f, 0f));
+            Body bodyB = world.CreateBody(new BodyDef().AsDynamic().At(0f, 0f));
+
+            bodyA.CreateFixture(new FixtureDef(new CircleShape(0.2f)));
+            bodyB.CreateFixture(new FixtureDef(new CircleShape(0.2f)));
+
+            float target = 3f;
+            PrismaticJointDef def = new PrismaticJointDef(bodyA, bodyB, bodyA.Transform.P, new Vec2(1f, 0f))
+                .WithSpring(5f, 0.7f, target);
+            PrismaticJoint joint = world.CreateJoint(def);
+
+            for (int i = 0; i < 240; ++i)
+            {
+                world.Step(1f / 60f);
+            }
+
+            float translation = joint.GetTranslation();
+            Assert.IsTrue(MathF.Abs(translation - target) < 0.6f, $"Expected translation near target. target={target} actual={translation}");
+        }
+
+        [TestMethod]
+        public void PrismaticJoint_ReportsSpeedAndMotorForce()
+        {
+            World world = new World(new WorldDef().WithGravity(new Vec2(0f, 0f)));
+            Body bodyA = world.CreateBody(new BodyDef().AsStatic().At(0f, 0f));
+            Body bodyB = world.CreateBody(new BodyDef().AsDynamic().At(0f, 0f));
+
+            bodyA.CreateFixture(new FixtureDef(new CircleShape(0.2f)));
+            bodyB.CreateFixture(new FixtureDef(new CircleShape(0.2f)));
+
+            PrismaticJointDef def = new PrismaticJointDef(bodyA, bodyB, bodyA.Transform.P, new Vec2(1f, 0f))
+                .WithMotor(5f, 50f);
+            PrismaticJoint joint = world.CreateJoint(def);
+
+            for (int i = 0; i < 120; ++i)
+            {
+                world.Step(1f / 60f);
+            }
+
+            float speed = joint.GetSpeed();
+            Assert.IsTrue(speed > 0.01f, $"Expected positive prismatic speed, got {speed}");
+        }
+
+        [TestMethod]
+        public void PrismaticJoint_UnstableSampleRemainsFinite()
+        {
+            World world = new World(new WorldDef().WithGravity(new Vec2(0f, -10f)));
+
+            Body ground = world.CreateBody(new BodyDef().AsStatic().At(0f, 0f));
+            ground.CreateFixture(new FixtureDef(new SegmentShape(new Vec2(-100f, 0f), new Vec2(100f, 0f))));
+
+            Body center = world.CreateBody(new BodyDef().AsDynamic().At(0f, 3f));
+            center.CreateFixture(new FixtureDef(new CircleShape(0.5f)));
+
+            Body left = world.CreateBody(new BodyDef().AsDynamic().At(-3.5f, 3f));
+            left.CreateFixture(new FixtureDef(new CircleShape(2f)));
+            world.CreateJoint(new PrismaticJointDef(center, left, center.Transform.P, new Vec2(1f, 0f))
+                .WithSpring(10f, 2f, -3f));
+
+            Body right = world.CreateBody(new BodyDef().AsDynamic().At(3.5f, 3f));
+            right.CreateFixture(new FixtureDef(new CircleShape(2f)));
+            world.CreateJoint(new PrismaticJointDef(center, right, center.Transform.P, new Vec2(1f, 0f))
+                .WithSpring(10f, 2f, 3f));
+
+            for (int i = 0; i < 600; ++i)
+            {
+                world.Step(1f / 60f);
+            }
+
+            foreach (Body body in world.Bodies)
+            {
+                Assert.IsTrue(MathFng.IsValidVec2(body.Transform.P), $"Invalid position for body {body.Transform.P}");
+                Assert.IsTrue(MathFng.IsValidFloat(body.AngularVelocity), "Invalid angular velocity.");
+                Assert.IsTrue(MathFng.IsValidVec2(body.LinearVelocity), "Invalid linear velocity.");
+            }
+        }
+
+        [TestMethod]
+        public void PrismaticJoint_MultipleChainRemainsFinite()
+        {
+            World world = new World(new WorldDef().WithGravity(new Vec2(0f, -10f)));
+
+            Body ground = world.CreateBody(new BodyDef().AsStatic().At(0f, 0f));
+
+            Body previous = ground;
+            Vec2 axis = new Vec2(0f, 1f);
+            for (int i = 0; i < 6; ++i)
+            {
+                float y = 0.6f + 1.2f * i;
+                Body body = world.CreateBody(new BodyDef().AsDynamic().At(0f, y));
+                PolygonShape box = new PolygonShape(BuildBoxVertices(0.5f, 0.5f, Vec2.Zero, 0f));
+                body.CreateFixture(new FixtureDef(box));
+
+                Vec2 anchor = new Vec2(0f, y - 0.6f);
+                PrismaticJointDef jd = new PrismaticJointDef(previous, body, anchor, axis)
+                    .WithLimit(-6f, 6f);
+                world.CreateJoint(jd);
+
+                previous = body;
+            }
+
+            for (int i = 0; i < 600; ++i)
+            {
+                world.Step(1f / 60f);
+            }
+
+            foreach (Body body in world.Bodies)
+            {
+                Assert.IsTrue(MathFng.IsValidVec2(body.Transform.P), $"Invalid position for body {body.Transform.P}");
+                Assert.IsTrue(MathFng.IsValidFloat(body.AngularVelocity), "Invalid angular velocity.");
+                Assert.IsTrue(MathFng.IsValidVec2(body.LinearVelocity), "Invalid linear velocity.");
+            }
+        }
+
+        [TestMethod]
         public void WheelJoint_SpringReducesAxisDisplacement()
         {
             World world = new World(new WorldDef().WithGravity(new Vec2(0f, 0f)));

@@ -6,6 +6,9 @@ namespace Box2DNG
         {
             private readonly World _world;
             private readonly System.Collections.Generic.List<ContactConstraint> _constraints = new System.Collections.Generic.List<ContactConstraint>();
+            private readonly System.Collections.Generic.List<System.Collections.Generic.List<int>> _colors = new System.Collections.Generic.List<System.Collections.Generic.List<int>>();
+            private readonly System.Collections.Generic.List<System.Collections.Generic.HashSet<Body>> _colorBodies = new System.Collections.Generic.List<System.Collections.Generic.HashSet<Body>>();
+            private World.ContactSolverStats _stats = new World.ContactSolverStats();
 
             public ContactSolver(World world)
             {
@@ -15,8 +18,14 @@ namespace Box2DNG
             public void Prepare(float timeStep, float dtRatio, System.Collections.Generic.IReadOnlyList<Contact> contacts)
             {
                 _constraints.Clear();
+                _colors.Clear();
+                _colorBodies.Clear();
+                int singlePoint = 0;
+                int twoPoint = 0;
+                int scalar = 0;
                 if (contacts.Count == 0)
                 {
+                    _stats = new World.ContactSolverStats(0, 0, 0, 0, 0, 0);
                     return;
                 }
 
@@ -149,15 +158,132 @@ namespace Box2DNG
                         };
                     }
 
+                    int index = _constraints.Count;
                     _constraints.Add(constraint);
+
+                    if (constraint.PointCount == 1)
+                    {
+                        singlePoint++;
+                    }
+                    else
+                    {
+                        twoPoint++;
+                    }
+
+                    scalar++;
+                    int colorIndex = TryAddToColors(index, bodyA, bodyB, _colors, _colorBodies);
+                    constraint.Contact.ColorIndex = colorIndex;
                 }
+
+                _stats = new World.ContactSolverStats(
+                    singlePoint,
+                    twoPoint,
+                    scalar,
+                    _colors.Count,
+                    0,
+                    0);
             }
 
             public void WarmStart()
             {
+                if (_colors.Count == 0)
+                {
+                    for (int i = 0; i < _constraints.Count; ++i)
+                    {
+                        ContactConstraint constraint = _constraints[i];
+                        WarmStartConstraint(ref constraint);
+                        _constraints[i] = constraint;
+                    }
+                    return;
+                }
+
+                for (int c = 0; c < _colors.Count; ++c)
+                {
+                    System.Collections.Generic.List<int> color = _colors[c];
+                    for (int i = 0; i < color.Count; ++i)
+                    {
+                        int index = color[i];
+                        ContactConstraint constraint = _constraints[index];
+                        WarmStartConstraint(ref constraint);
+                        _constraints[index] = constraint;
+                    }
+                }
+            }
+
+            public void SolveVelocity(bool useBias)
+            {
+                if (_colors.Count == 0)
+                {
+                    for (int i = 0; i < _constraints.Count; ++i)
+                    {
+                        ContactConstraint constraint = _constraints[i];
+                        SolveVelocityConstraint(ref constraint, useBias);
+                        _constraints[i] = constraint;
+                    }
+                    return;
+                }
+
+                for (int c = 0; c < _colors.Count; ++c)
+                {
+                    System.Collections.Generic.List<int> color = _colors[c];
+                    for (int i = 0; i < color.Count; ++i)
+                    {
+                        int index = color[i];
+                        ContactConstraint constraint = _constraints[index];
+                        SolveVelocityConstraint(ref constraint, useBias);
+                        _constraints[index] = constraint;
+                    }
+                }
+            }
+
+            public void ApplyRestitution(float threshold)
+            {
+                if (_colors.Count == 0)
+                {
+                    for (int i = 0; i < _constraints.Count; ++i)
+                    {
+                        ContactConstraint constraint = _constraints[i];
+                        ApplyRestitutionConstraint(ref constraint, threshold);
+                        _constraints[i] = constraint;
+                    }
+                    return;
+                }
+
+                for (int c = 0; c < _colors.Count; ++c)
+                {
+                    System.Collections.Generic.List<int> color = _colors[c];
+                    for (int i = 0; i < color.Count; ++i)
+                    {
+                        int index = color[i];
+                        ContactConstraint constraint = _constraints[index];
+                        ApplyRestitutionConstraint(ref constraint, threshold);
+                        _constraints[index] = constraint;
+                    }
+                }
+            }
+
+            public void StoreImpulses()
+            {
                 for (int i = 0; i < _constraints.Count; ++i)
                 {
                     ContactConstraint constraint = _constraints[i];
+                    Contact contact = constraint.Contact;
+                    for (int p = 0; p < constraint.PointCount; ++p)
+                    {
+                        ContactConstraintPoint cp = constraint.Points[p];
+                        ManifoldPoint mp = contact.Manifold.Points[p];
+                        contact.Manifold.Points[p] = new ManifoldPoint(mp.LocalPoint, cp.NormalImpulse, cp.TangentImpulse, mp.Id);
+                    }
+                }
+            }
+
+            public World.ContactSolverStats GetStats()
+            {
+                return _stats;
+            }
+
+            private void WarmStartConstraint(ref ContactConstraint constraint)
+            {
                     Body bodyA = constraint.BodyA;
                     Body bodyB = constraint.BodyB;
 
@@ -189,14 +315,10 @@ namespace Box2DNG
                     bodyA.AngularVelocity = wA;
                     bodyB.LinearVelocity = vB;
                     bodyB.AngularVelocity = wB;
-                }
             }
 
-            public void SolveVelocity(bool useBias)
+            private void SolveVelocityConstraint(ref ContactConstraint constraint, bool useBias)
             {
-                for (int i = 0; i < _constraints.Count; ++i)
-                {
-                    ContactConstraint constraint = _constraints[i];
                     Body bodyA = constraint.BodyA;
                     Body bodyB = constraint.BodyB;
 
@@ -266,19 +388,13 @@ namespace Box2DNG
                     bodyA.AngularVelocity = wA;
                     bodyB.LinearVelocity = vB;
                     bodyB.AngularVelocity = wB;
-
-                    _constraints[i] = constraint;
-                }
             }
 
-            public void ApplyRestitution(float threshold)
+            private void ApplyRestitutionConstraint(ref ContactConstraint constraint, float threshold)
             {
-                for (int i = 0; i < _constraints.Count; ++i)
-                {
-                    ContactConstraint constraint = _constraints[i];
                     if (constraint.Restitution == 0f)
                     {
-                        continue;
+                        return;
                     }
 
                     Body bodyA = constraint.BodyA;
@@ -325,24 +441,53 @@ namespace Box2DNG
                     bodyA.AngularVelocity = wA;
                     bodyB.LinearVelocity = vB;
                     bodyB.AngularVelocity = wB;
-
-                    _constraints[i] = constraint;
-                }
             }
 
-            public void StoreImpulses()
+            private static int TryAddToColors(
+                int constraintIndex,
+                Body bodyA,
+                Body bodyB,
+                System.Collections.Generic.List<System.Collections.Generic.List<int>> colors,
+                System.Collections.Generic.List<System.Collections.Generic.HashSet<Body>> colorBodies)
             {
-                for (int i = 0; i < _constraints.Count; ++i)
+                bool addA = bodyA.Type != BodyType.Static;
+                bool addB = bodyB.Type != BodyType.Static;
+                for (int i = 0; i < colors.Count; ++i)
                 {
-                    ContactConstraint constraint = _constraints[i];
-                    Contact contact = constraint.Contact;
-                    for (int p = 0; p < constraint.PointCount; ++p)
+                    System.Collections.Generic.HashSet<Body> bodies = colorBodies[i];
+                    if ((addA && bodies.Contains(bodyA)) || (addB && bodies.Contains(bodyB)))
                     {
-                        ContactConstraintPoint cp = constraint.Points[p];
-                        ManifoldPoint mp = contact.Manifold.Points[p];
-                        contact.Manifold.Points[p] = new ManifoldPoint(mp.LocalPoint, cp.NormalImpulse, cp.TangentImpulse, mp.Id);
+                        continue;
                     }
+
+                    if (addA)
+                    {
+                        bodies.Add(bodyA);
+                    }
+                    if (addB)
+                    {
+                        bodies.Add(bodyB);
+                    }
+                    colors[i].Add(constraintIndex);
+                    return i;
                 }
+
+                System.Collections.Generic.List<int> newColor = new System.Collections.Generic.List<int>();
+                newColor.Add(constraintIndex);
+                colors.Add(newColor);
+
+                System.Collections.Generic.HashSet<Body> newBodies = new System.Collections.Generic.HashSet<Body>();
+                if (addA)
+                {
+                    newBodies.Add(bodyA);
+                }
+                if (addB)
+                {
+                    newBodies.Add(bodyB);
+                }
+                colorBodies.Add(newBodies);
+
+                return colors.Count - 1;
             }
 
             private struct ContactConstraintPoint

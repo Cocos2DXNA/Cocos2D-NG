@@ -10,6 +10,7 @@ namespace Box2DNG
         public Vec2 LocalAnchorB { get; }
         public float MaxForce { get; private set; }
         public float MaxTorque { get; private set; }
+        public bool CollideConnected { get; }
 
         private Vec2 _rA;
         private Vec2 _rB;
@@ -26,6 +27,7 @@ namespace Box2DNG
             LocalAnchorB = def.LocalAnchorB;
             MaxForce = def.MaxForce;
             MaxTorque = def.MaxTorque;
+            CollideConnected = def.CollideConnected;
         }
 
         public void SetMaxForce(float maxForce) => MaxForce = MathF.Max(0f, maxForce);

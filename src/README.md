@@ -43,3 +43,13 @@ WorldDef def = new WorldDef()
     .WithContactDamping(1f)
     .WithContactSpeed(15f);
 ```
+
+## How-To: Clamp Contact Hertz Per Step
+
+To match Box2D’s step-time clamping behavior (useful for large time steps), enable
+`EnableContactHertzClamping`. This clamps the effective hertz to `min(ContactHertz, 0.125 / dt)`.
+
+```csharp
+WorldDef def = new WorldDef()
+    .EnableContactHertzClamping(true);
+```

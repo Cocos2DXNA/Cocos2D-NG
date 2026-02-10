@@ -47,6 +47,7 @@ namespace Box2DNG
 
                     if (contact.Manifold.PointCount == 0)
                     {
+                        contact.ColorIndex = -1;
                         continue;
                     }
 
@@ -156,21 +157,31 @@ namespace Box2DNG
                     if (constraint.PointCount != 1)
                     {
                         twoPoint++;
-                        bool addedTwo = TryAddToColors(index, bodyA, bodyB, _colorsTwo, _colorBodiesTwo);
-                        if (!addedTwo)
+                        int colorIndex = TryAddToColors(index, bodyA, bodyB, _colorsTwo, _colorBodiesTwo);
+                        if (colorIndex < 0)
                         {
                             _scalarConstraints.Add(index);
                             scalar++;
+                            contact.ColorIndex = -1;
+                        }
+                        else
+                        {
+                            contact.ColorIndex = colorIndex;
                         }
                         continue;
                     }
 
                     singlePoint++;
-                    bool addedSingle = TryAddToColors(index, bodyA, bodyB, _colorsSingle, _colorBodiesSingle);
-                    if (!addedSingle)
+                    int colorIndexSingle = TryAddToColors(index, bodyA, bodyB, _colorsSingle, _colorBodiesSingle);
+                    if (colorIndexSingle < 0)
                     {
                         _scalarConstraints.Add(index);
                         scalar++;
+                        contact.ColorIndex = -1;
+                    }
+                    else
+                    {
+                        contact.ColorIndex = colorIndexSingle;
                     }
                 }
 
@@ -1300,36 +1311,51 @@ namespace Box2DNG
                 }
             }
 
-            private static bool TryAddToColors(
+            private static int TryAddToColors(
                 int index,
                 Body bodyA,
                 Body bodyB,
                 System.Collections.Generic.List<System.Collections.Generic.List<int>> colors,
                 System.Collections.Generic.List<System.Collections.Generic.HashSet<Body>> colorBodies)
             {
+                bool addA = bodyA.Type != BodyType.Static;
+                bool addB = bodyB.Type != BodyType.Static;
                 for (int c = 0; c < colors.Count; ++c)
                 {
                     System.Collections.Generic.HashSet<Body> bodies = colorBodies[c];
-                    if (bodies.Contains(bodyA) || bodies.Contains(bodyB))
+                    if ((addA && bodies.Contains(bodyA)) || (addB && bodies.Contains(bodyB)))
                     {
                         continue;
                     }
 
-                    bodies.Add(bodyA);
-                    bodies.Add(bodyB);
+                    if (addA)
+                    {
+                        bodies.Add(bodyA);
+                    }
+                    if (addB)
+                    {
+                        bodies.Add(bodyB);
+                    }
                     colors[c].Add(index);
-                    return true;
+                    return c;
                 }
 
                 System.Collections.Generic.List<int> list = new System.Collections.Generic.List<int> { index };
                 colors.Add(list);
                 System.Collections.Generic.HashSet<Body> newBodies = new System.Collections.Generic.HashSet<Body>
                 {
-                    bodyA,
-                    bodyB
+                    // Static bodies are omitted so they don't block color grouping.
                 };
+                if (addA)
+                {
+                    newBodies.Add(bodyA);
+                }
+                if (addB)
+                {
+                    newBodies.Add(bodyB);
+                }
                 colorBodies.Add(newBodies);
-                return true;
+                return colors.Count - 1;
             }
 
             private struct ContactConstraintPoint
