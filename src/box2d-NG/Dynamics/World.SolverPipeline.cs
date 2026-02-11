@@ -314,111 +314,126 @@ namespace Box2DNG
 
             private void InitJointVelocityConstraints(JointHandle handle, float timeStep)
             {
+                if (!_world.TryGetJointIndex(handle, out int index))
+                {
+                    return;
+                }
+
                 switch (handle.Type)
                 {
                     case JointType.Distance:
-                        _world._distanceJoints[handle.Index].InitVelocityConstraints(timeStep);
+                        _world._distanceJoints[index].InitVelocityConstraints(timeStep);
                         break;
                     case JointType.Revolute:
-                        _world._revoluteJoints[handle.Index].InitVelocityConstraints(timeStep);
+                        _world._revoluteJoints[index].InitVelocityConstraints(timeStep);
                         break;
                     case JointType.Prismatic:
-                        _world._prismaticJoints[handle.Index].InitVelocityConstraints(timeStep);
+                        _world._prismaticJoints[index].InitVelocityConstraints(timeStep);
                         break;
                     case JointType.Wheel:
-                        _world._wheelJoints[handle.Index].InitVelocityConstraints(timeStep);
+                        _world._wheelJoints[index].InitVelocityConstraints(timeStep);
                         break;
                     case JointType.Pulley:
-                        _world._pulleyJoints[handle.Index].InitVelocityConstraints(timeStep);
+                        _world._pulleyJoints[index].InitVelocityConstraints(timeStep);
                         break;
                     case JointType.Weld:
-                        _world._weldJoints[handle.Index].InitVelocityConstraints(timeStep);
+                        _world._weldJoints[index].InitVelocityConstraints(timeStep);
                         break;
                     case JointType.Motor:
-                        _world._motorJoints[handle.Index].InitVelocityConstraints(timeStep);
+                        _world._motorJoints[index].InitVelocityConstraints(timeStep);
                         break;
                     case JointType.Gear:
-                        _world._gearJoints[handle.Index].InitVelocityConstraints(timeStep);
+                        _world._gearJoints[index].InitVelocityConstraints(timeStep);
                         break;
                     case JointType.Rope:
-                        _world._ropeJoints[handle.Index].InitVelocityConstraints(timeStep);
+                        _world._ropeJoints[index].InitVelocityConstraints(timeStep);
                         break;
                     case JointType.Friction:
-                        _world._frictionJoints[handle.Index].InitVelocityConstraints(timeStep);
+                        _world._frictionJoints[index].InitVelocityConstraints(timeStep);
                         break;
                 }
             }
 
             private void SolveJointVelocityConstraints(JointHandle handle, float timeStep)
             {
+                if (!_world.TryGetJointIndex(handle, out int index))
+                {
+                    return;
+                }
+
                 switch (handle.Type)
                 {
                     case JointType.Distance:
-                        _world._distanceJoints[handle.Index].SolveVelocityConstraints();
+                        _world._distanceJoints[index].SolveVelocityConstraints();
                         break;
                     case JointType.Revolute:
-                        _world._revoluteJoints[handle.Index].SolveVelocityConstraints(timeStep);
+                        _world._revoluteJoints[index].SolveVelocityConstraints(timeStep);
                         break;
                     case JointType.Prismatic:
-                        _world._prismaticJoints[handle.Index].SolveVelocityConstraints(timeStep);
+                        _world._prismaticJoints[index].SolveVelocityConstraints(timeStep);
                         break;
                     case JointType.Wheel:
-                        _world._wheelJoints[handle.Index].SolveVelocityConstraints(timeStep);
+                        _world._wheelJoints[index].SolveVelocityConstraints(timeStep);
                         break;
                     case JointType.Pulley:
-                        _world._pulleyJoints[handle.Index].SolveVelocityConstraints();
+                        _world._pulleyJoints[index].SolveVelocityConstraints();
                         break;
                     case JointType.Weld:
-                        _world._weldJoints[handle.Index].SolveVelocityConstraints(timeStep);
+                        _world._weldJoints[index].SolveVelocityConstraints(timeStep);
                         break;
                     case JointType.Motor:
-                        _world._motorJoints[handle.Index].SolveVelocityConstraints(timeStep);
+                        _world._motorJoints[index].SolveVelocityConstraints(timeStep);
                         break;
                     case JointType.Gear:
-                        _world._gearJoints[handle.Index].SolveVelocityConstraints(timeStep);
+                        _world._gearJoints[index].SolveVelocityConstraints(timeStep);
                         break;
                     case JointType.Rope:
-                        _world._ropeJoints[handle.Index].SolveVelocityConstraints(timeStep);
+                        _world._ropeJoints[index].SolveVelocityConstraints(timeStep);
                         break;
                     case JointType.Friction:
-                        _world._frictionJoints[handle.Index].SolveVelocityConstraints(timeStep);
+                        _world._frictionJoints[index].SolveVelocityConstraints(timeStep);
                         break;
                 }
             }
 
             private void SolveJointPositionConstraints(JointHandle handle)
             {
+                if (!_world.TryGetJointIndex(handle, out int index))
+                {
+                    return;
+                }
+
                 switch (handle.Type)
                 {
                     case JointType.Distance:
-                        _world._distanceJoints[handle.Index].SolvePositionConstraints();
+                        _world._distanceJoints[index].SolvePositionConstraints();
                         break;
                     case JointType.Revolute:
-                        _world._revoluteJoints[handle.Index].SolvePositionConstraints();
+                        _world._revoluteJoints[index].SolvePositionConstraints();
                         break;
                     case JointType.Prismatic:
-                        _world._prismaticJoints[handle.Index].SolvePositionConstraints();
+                        _world._prismaticJoints[index].SolvePositionConstraints();
                         break;
                     case JointType.Wheel:
-                        _world._wheelJoints[handle.Index].SolvePositionConstraints();
+                        _world._wheelJoints[index].SolvePositionConstraints();
                         break;
                     case JointType.Pulley:
-                        _world._pulleyJoints[handle.Index].SolvePositionConstraints();
+                        _world._pulleyJoints[index].SolvePositionConstraints();
                         break;
                     case JointType.Weld:
-                        _world._weldJoints[handle.Index].SolvePositionConstraints();
+                        _world._weldJoints[index].SolvePositionConstraints();
                         break;
                     case JointType.Motor:
-                        _world._motorJoints[handle.Index].SolvePositionConstraints();
+                        _world._motorJoints[index].SolvePositionConstraints();
                         break;
                     case JointType.Gear:
-                        _world._gearJoints[handle.Index].SolvePositionConstraints();
+                        _world._gearJoints[index].SolvePositionConstraints();
                         break;
                     case JointType.Rope:
-                        _world._ropeJoints[handle.Index].SolvePositionConstraints();
+                        _world._ropeJoints[index].SolvePositionConstraints();
                         break;
                     case JointType.Friction:
-                        _world._frictionJoints[handle.Index].SolvePositionConstraints();
+                        _world._frictionJoints[index].SolvePositionConstraints();
                         break;
                 }
             }

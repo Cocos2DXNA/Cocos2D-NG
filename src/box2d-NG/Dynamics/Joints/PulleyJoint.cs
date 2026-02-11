@@ -4,6 +4,7 @@ namespace Box2DNG
 {
     public sealed class PulleyJoint
     {
+        public int Id { get; internal set; } = -1;
         public Body BodyA { get; }
         public Body BodyB { get; }
         public Vec2 GroundAnchorA { get; }

@@ -15,12 +15,12 @@ namespace Box2DNG
     public readonly struct JointHandle
     {
         public readonly JointType Type;
-        public readonly int Index;
+        public readonly int Id;
 
-        public JointHandle(JointType type, int index)
+        public JointHandle(JointType type, int id)
         {
             Type = type;
-            Index = index;
+            Id = id;
         }
     }
 

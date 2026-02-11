@@ -22,6 +22,7 @@ namespace Box2DNG
         public float Inertia { get; private set; }
         public float InverseMass { get; private set; }
         public float InverseInertia { get; private set; }
+        public int Id { get; internal set; } = -1;
         public Sweep Sweep { get; internal set; }
         public Vec2 LocalCenter { get; private set; }
         public Vec2 Force { get; private set; }
@@ -30,6 +31,8 @@ namespace Box2DNG
         public bool AllowSleep { get; private set; }
         public float SleepTime { get; internal set; }
         internal SolverSetType SolverSetType { get; set; } = SolverSetType.Awake;
+        internal ContactEdge? ContactList { get; set; }
+        internal int ContactEdgeCount { get; set; }
 
         internal Body(World world, BodyDef def)
         {

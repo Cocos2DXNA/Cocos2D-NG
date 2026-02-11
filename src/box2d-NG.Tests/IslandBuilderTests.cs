@@ -16,6 +16,35 @@ namespace Box2DNG.Tests
 
             var islands = world.BuildIslands(awakeOnly: false);
             Assert.AreEqual(2, islands.Count, $"Expected 2 islands, got {islands.Count}");
+            System.Collections.Generic.HashSet<int> ids = new System.Collections.Generic.HashSet<int>();
+            for (int i = 0; i < islands.Count; ++i)
+            {
+                Assert.IsTrue(ids.Add(islands[i].Id), $"Expected unique island id, got duplicate {islands[i].Id}");
+            }
+        }
+
+        [TestMethod]
+        public void BuildIslands_IslandIdsStableAcrossRebuild()
+        {
+            World world = new World(new WorldDef().WithGravity(new Vec2(0f, -10f)).EnableSleeping(false));
+            world.CreateBody(new BodyDef().AsDynamic().At(-2f, 2f))
+                .CreateFixture(new FixtureDef(new CircleShape(0.5f)).WithDensity(1f));
+            world.CreateBody(new BodyDef().AsDynamic().At(2f, 2f))
+                .CreateFixture(new FixtureDef(new CircleShape(0.5f)).WithDensity(1f));
+
+            var islands = world.BuildIslands(awakeOnly: false);
+            int[] ids = new int[islands.Count];
+            for (int i = 0; i < islands.Count; ++i)
+            {
+                ids[i] = islands[i].Id;
+            }
+
+            var rebuilt = world.BuildIslands(awakeOnly: false);
+            Assert.AreEqual(ids.Length, rebuilt.Count, $"Expected {ids.Length} islands after rebuild, got {rebuilt.Count}");
+            for (int i = 0; i < rebuilt.Count; ++i)
+            {
+                Assert.AreEqual(ids[i], rebuilt[i].Id, $"Expected island id stable at index {i}.");
+            }
         }
 
         [TestMethod]

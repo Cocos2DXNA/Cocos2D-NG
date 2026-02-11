@@ -4,6 +4,7 @@ namespace Box2DNG
 {
     public sealed class GearJoint
     {
+        public int Id { get; internal set; } = -1;
         private enum JointKind
         {
             Revolute,

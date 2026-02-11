@@ -13,6 +13,7 @@ namespace Box2DNG
         public bool EnableSensorEvents { get; internal set; } = true;
         public Filter Filter { get; internal set; }
         public object? UserData { get; internal set; }
+        public int Id { get; internal set; } = -1;
         public int ProxyId { get; internal set; } = -1;
         public Aabb Aabb { get; internal set; }
 

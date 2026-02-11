@@ -4,6 +4,7 @@ namespace Box2DNG
 {
     public sealed class Contact
     {
+        public int Id { get; internal set; } = -1;
         public Fixture? FixtureA { get; }
         public Fixture? FixtureB { get; }
         public Shape ShapeA { get; }
@@ -21,6 +22,10 @@ namespace Box2DNG
         internal SolverSetType SolverSetType { get; set; } = SolverSetType.Awake;
         internal int SolverSetId { get; set; } = 0;
         internal int ColorIndex { get; set; } = -1;
+        internal int EdgeIdA { get; set; } = -1;
+        internal int EdgeIdB { get; set; } = -1;
+        internal ContactEdge? EdgeA { get; set; }
+        internal ContactEdge? EdgeB { get; set; }
 
         public Contact(Shape shapeA, Transform transformA, Shape shapeB, Transform transformB)
         {
