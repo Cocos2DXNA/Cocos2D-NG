@@ -194,6 +194,197 @@ namespace Box2DNG
                     0);
             }
 
+            public void Prepare(float timeStep, float dtRatio, ConstraintGraph graph)
+            {
+                _constraints.Clear();
+                _colorsSingle.Clear();
+                _colorBodiesSingle.Clear();
+                _colorsTwo.Clear();
+                _colorBodiesTwo.Clear();
+                _scalarConstraints.Clear();
+                int singlePoint = 0;
+                int twoPoint = 0;
+                int scalar = 0;
+
+                System.Collections.Generic.List<int>?[] colorSingles = new System.Collections.Generic.List<int>?[Constants.GraphColorCount];
+                System.Collections.Generic.List<int>?[] colorTwos = new System.Collections.Generic.List<int>?[Constants.GraphColorCount];
+
+                for (int colorIndex = 0; colorIndex < Constants.GraphColorCount; ++colorIndex)
+                {
+                    System.Collections.Generic.List<Contact> contacts = graph.Colors[colorIndex].Contacts;
+                    for (int i = 0; i < contacts.Count; ++i)
+                    {
+                        Contact contact = contacts[i];
+                        if (contact.FixtureA == null || contact.FixtureB == null)
+                        {
+                            continue;
+                        }
+
+                        if (contact.Manifold.PointCount == 0)
+                        {
+                            contact.ColorIndex = -1;
+                            contact.LocalIndex = -1;
+                            continue;
+                        }
+
+                        Fixture fixtureA = contact.FixtureA;
+                        Fixture fixtureB = contact.FixtureB;
+                        Body bodyA = fixtureA.Body;
+                        Body bodyB = fixtureB.Body;
+
+                        float radiusA = GetShapeRadius(fixtureA.Shape);
+                        float radiusB = GetShapeRadius(fixtureB.Shape);
+
+                        WorldManifold worldManifold = new WorldManifold();
+                        worldManifold.Initialize(contact.Manifold, bodyA.Transform, radiusA, bodyB.Transform, radiusB);
+
+                        Vec2 normal = worldManifold.Normal;
+                        Vec2 tangent = new Vec2(-normal.Y, normal.X);
+
+                        ContactConstraint constraint = new ContactConstraint(contact, bodyA, bodyB, normal, tangent, contact.Manifold.PointCount)
+                        {
+                            Friction = _world.MixFriction(fixtureA, fixtureB),
+                            Restitution = _world.MixRestitution(fixtureA, fixtureB),
+                            InvMassA = bodyA.InverseMass,
+                            InvIA = bodyA.InverseInertia,
+                            InvMassB = bodyB.InverseMass,
+                            InvIB = bodyB.InverseInertia
+                        };
+
+                        Vec2 centerA = bodyA.GetWorldCenter();
+                        Vec2 centerB = bodyB.GetWorldCenter();
+
+                        for (int p = 0; p < constraint.PointCount; ++p)
+                        {
+                            ManifoldPoint mp = contact.Manifold.Points[p];
+                            if (dtRatio != 1f)
+                            {
+                                mp = new ManifoldPoint(mp.LocalPoint, mp.NormalImpulse * dtRatio, mp.TangentImpulse * dtRatio, mp.Id);
+                                contact.Manifold.Points[p] = mp;
+                            }
+
+                            Vec2 point = worldManifold.Points[p];
+                            Vec2 rA = point - centerA;
+                            Vec2 rB = point - centerB;
+
+                            PositionManifold pm = ComputePositionManifold(contact, bodyA.Transform, bodyB.Transform, radiusA, radiusB, p);
+                            float separation = pm.Separation;
+
+                            float rnA = Vec2.Cross(rA, normal);
+                            float rnB = Vec2.Cross(rB, normal);
+                            float kNormal = bodyA.InverseMass + bodyB.InverseMass +
+                                            bodyA.InverseInertia * rnA * rnA + bodyB.InverseInertia * rnB * rnB;
+                            float normalMass = kNormal > 0f ? 1f / kNormal : 0f;
+
+                            float rtA = Vec2.Cross(rA, tangent);
+                            float rtB = Vec2.Cross(rB, tangent);
+                            float kTangent = bodyA.InverseMass + bodyB.InverseMass +
+                                             bodyA.InverseInertia * rtA * rtA + bodyB.InverseInertia * rtB * rtB;
+                            float tangentMass = kTangent > 0f ? 1f / kTangent : 0f;
+
+                            Vec2 vA = bodyA.LinearVelocity + Vec2.Cross(bodyA.AngularVelocity, rA);
+                            Vec2 vB = bodyB.LinearVelocity + Vec2.Cross(bodyB.AngularVelocity, rB);
+                            float relativeVelocity = Vec2.Dot(vB - vA, normal);
+
+                            float bias = 0f;
+                            float softness = 0f;
+                            if (_world._def.EnableContactSoftening)
+                            {
+                                if (separation > 0f)
+                                {
+                                    bias = separation / timeStep;
+                                }
+                                else if (_world._def.UseSoftConstraints)
+                                {
+                                    _world.ComputeContactSoftness(kNormal, timeStep, separation, out bias, out softness);
+                                    if (softness > 0f)
+                                    {
+                                        normalMass = 1f / (kNormal + softness);
+                                    }
+                                }
+                                else
+                                {
+                                    float baumgarte = Constants.Baumgarte * (separation + Constants.LinearSlop) / timeStep;
+                                    float maxBias = MathF.Max(_world._def.ContactSpeed, 0f);
+                                    float legacyBias = MathFng.Clamp(baumgarte, -maxBias, 0f);
+                                    bias = MathFng.Clamp(legacyBias, -Constants.MaxLinearCorrection, 0f);
+                                }
+                            }
+
+                            constraint.Points[p] = new ContactConstraintPoint
+                            {
+                                RA = rA,
+                                RB = rB,
+                                NormalImpulse = mp.NormalImpulse,
+                                TangentImpulse = mp.TangentImpulse,
+                                TotalNormalImpulse = 0f,
+                                NormalMass = normalMass,
+                                TangentMass = tangentMass,
+                                BaseSeparation = separation - Vec2.Dot(rB - rA, normal),
+                                RelativeVelocity = relativeVelocity,
+                                Bias = bias,
+                                Softness = softness
+                            };
+                        }
+
+                        int index = _constraints.Count;
+                        _constraints.Add(constraint);
+
+                        if (constraint.PointCount != 1)
+                        {
+                            twoPoint++;
+                            System.Collections.Generic.List<int>? list = colorTwos[colorIndex];
+                            if (list == null)
+                            {
+                                list = new System.Collections.Generic.List<int>();
+                                colorTwos[colorIndex] = list;
+                            }
+                            list.Add(index);
+                        }
+                        else
+                        {
+                            singlePoint++;
+                            System.Collections.Generic.List<int>? list = colorSingles[colorIndex];
+                            if (list == null)
+                            {
+                                list = new System.Collections.Generic.List<int>();
+                                colorSingles[colorIndex] = list;
+                            }
+                            list.Add(index);
+                        }
+                    }
+                }
+
+                int activeColors = 0;
+                for (int i = 0; i < Constants.GraphColorCount; ++i)
+                {
+                    System.Collections.Generic.List<int>? singles = colorSingles[i];
+                    if (singles != null && singles.Count > 0)
+                    {
+                        _colorsSingle.Add(singles);
+                    }
+
+                    System.Collections.Generic.List<int>? twos = colorTwos[i];
+                    if (twos != null && twos.Count > 0)
+                    {
+                        _colorsTwo.Add(twos);
+                    }
+
+                    if ((singles != null && singles.Count > 0) || (twos != null && twos.Count > 0))
+                    {
+                        activeColors++;
+                    }
+                }
+
+                _stats = new World.ContactSolverStats(
+                    singlePoint,
+                    twoPoint,
+                    scalar,
+                    activeColors,
+                    0,
+                    0);
+            }
+
             public void WarmStart()
             {
                 for (int i = 0; i < _constraints.Count; ++i)

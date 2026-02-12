@@ -5,6 +5,24 @@ using System.Threading;
 
 namespace Box2DNG
 {
+    public readonly struct WorldId : IEquatable<WorldId>
+    {
+        public readonly ushort Index1;
+        public readonly ushort Generation;
+
+        public WorldId(ushort index1, ushort generation)
+        {
+            Index1 = index1;
+            Generation = generation;
+        }
+
+        public bool IsNull => Index1 == 0;
+
+        public bool Equals(WorldId other) => Index1 == other.Index1 && Generation == other.Generation;
+        public override bool Equals(object? obj) => obj is WorldId other && Equals(other);
+        public override int GetHashCode() => HashCode.Combine(Index1, Generation);
+    }
+
     public readonly struct Box2DVersion
     {
         public readonly int Major;
@@ -23,9 +41,13 @@ namespace Box2DNG
 
     public static class Box2D
     {
+        private const int MaxWorlds = 128;
         private static float _lengthUnitsPerMeter = 1f;
         private static Func<string, string, int, bool>? _assertHandler;
         private static Action<string>? _logHandler;
+        private static readonly object _worldLock = new object();
+        private static readonly World?[] _worlds = new World?[MaxWorlds];
+        private static readonly ushort[] _worldGenerations = new ushort[MaxWorlds];
 
         public static float LengthUnitsPerMeter => _lengthUnitsPerMeter;
 
@@ -40,6 +62,89 @@ namespace Box2DNG
         }
 
         public static Box2DVersion GetVersion() => new Box2DVersion(3, 2, 0);
+
+        public static WorldId CreateWorld(WorldDef def)
+        {
+            if (def == null)
+            {
+                throw new ArgumentNullException(nameof(def));
+            }
+
+            lock (_worldLock)
+            {
+                for (int i = 0; i < _worlds.Length; ++i)
+                {
+                    if (_worlds[i] != null)
+                    {
+                        continue;
+                    }
+
+                    World world = new World(def);
+                    ushort generation = _worldGenerations[i];
+                    if (generation == 0)
+                    {
+                        generation = 1;
+                        _worldGenerations[i] = generation;
+                    }
+
+                    WorldId id = new WorldId((ushort)(i + 1), generation);
+                    world.SetWorldId(id);
+                    _worlds[i] = world;
+                    return id;
+                }
+            }
+
+            throw new InvalidOperationException($"Cannot create world: maximum world count ({MaxWorlds}) reached.");
+        }
+
+        public static bool DestroyWorld(WorldId id)
+        {
+            lock (_worldLock)
+            {
+                if (!TryGetWorldUnsafe(id, out World? world, out int index))
+                {
+                    return false;
+                }
+
+                _worlds[index] = null;
+                ushort generation = _worldGenerations[index];
+                generation = (ushort)(generation + 1);
+                if (generation == 0)
+                {
+                    generation = 1;
+                }
+                _worldGenerations[index] = generation;
+                world!.SetWorldId(default);
+                world.Dispose();
+                return true;
+            }
+        }
+
+        public static bool IsValid(WorldId id)
+        {
+            lock (_worldLock)
+            {
+                return TryGetWorldUnsafe(id, out _, out _);
+            }
+        }
+
+        public static bool TryGetWorld(WorldId id, out World? world)
+        {
+            lock (_worldLock)
+            {
+                return TryGetWorldUnsafe(id, out world, out _);
+            }
+        }
+
+        public static World GetWorld(WorldId id)
+        {
+            if (TryGetWorld(id, out World? world) && world != null)
+            {
+                return world;
+            }
+
+            throw new ArgumentException("Invalid world id.", nameof(id));
+        }
 
         public static void SetAssertHandler(Func<string, string, int, bool> handler)
         {
@@ -126,6 +231,36 @@ namespace Box2DNG
                     Debug.Fail($"BOX2D ASSERTION: {conditionText}, {fileName}, line {lineNumber}");
                 }
             }
+        }
+
+        private static bool TryGetWorldUnsafe(WorldId id, out World? world, out int index)
+        {
+            world = null;
+            index = -1;
+            if (id.Index1 == 0)
+            {
+                return false;
+            }
+
+            index = id.Index1 - 1;
+            if ((uint)index >= (uint)_worlds.Length)
+            {
+                return false;
+            }
+
+            world = _worlds[index];
+            if (world == null)
+            {
+                return false;
+            }
+
+            if (_worldGenerations[index] != id.Generation)
+            {
+                world = null;
+                return false;
+            }
+
+            return true;
         }
     }
 

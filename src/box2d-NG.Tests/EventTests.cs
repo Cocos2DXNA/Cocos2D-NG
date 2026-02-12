@@ -113,6 +113,36 @@ namespace Box2DNG.Tests
         }
 
         [TestMethod]
+        public void SensorEvents_VisitorFixtureReplacement_EmitsEndThenBegin()
+        {
+            World world = new World(new WorldDef().WithGravity(Vec2.Zero));
+            Body sensorBody = world.CreateBody(new BodyDef().AsStatic().At(0f, 0f));
+            Body visitorBody = world.CreateBody(new BodyDef().AsDynamic().At(0f, 0f));
+
+            sensorBody.CreateFixture(new FixtureDef(new CircleShape(0.75f)).AsSensor().WithUserData("Sensor"));
+            Fixture visitor = visitorBody.CreateFixture(new FixtureDef(new CircleShape(0.5f)).WithUserData("VisitorA"));
+
+            int beginCount = 0;
+            int endCount = 0;
+            world.Events.SensorEvents += e =>
+            {
+                if (e.Begin != null) beginCount += e.Begin.Length;
+                if (e.End != null) endCount += e.End.Length;
+            };
+
+            world.UpdateContacts();
+            Assert.AreEqual(1, beginCount, "Expected initial begin event.");
+            Assert.AreEqual(0, endCount, "Expected no initial end event.");
+
+            visitorBody.DestroyFixture(visitor);
+            visitorBody.CreateFixture(new FixtureDef(new CircleShape(0.5f)).WithUserData("VisitorB"));
+            world.UpdateContacts();
+
+            Assert.IsTrue(endCount >= 1, "Expected end event for removed visitor overlap.");
+            Assert.IsTrue(beginCount >= 2, "Expected begin event for replacement visitor overlap.");
+        }
+
+        [TestMethod]
         public void SensorHitEvents_FireForBullets()
         {
             World world = new World(new WorldDef().WithGravity(new Vec2(0f, 0f)));
@@ -166,6 +196,61 @@ namespace Box2DNG.Tests
             }
 
             Assert.IsTrue(hitCount > 0, "Expected sensor hit events for non-bullet continuous cast.");
+        }
+
+        [TestMethod]
+        public void SensorHitEvents_FireForContinuousCasts_AllDynamicShapes()
+        {
+            bool circleHit = RunContinuousSensorHitScenario(new CircleShape(0.25f), "Circle");
+            bool capsuleHit = RunContinuousSensorHitScenario(new CapsuleShape(new Vec2(-0.2f, 0f), new Vec2(0.2f, 0f), 0.15f), "Capsule");
+            bool polygonHit = RunContinuousSensorHitScenario(new PolygonShape(new[]
+            {
+                new Vec2(-0.2f, -0.2f),
+                new Vec2(0.2f, -0.2f),
+                new Vec2(0.2f, 0.2f),
+                new Vec2(-0.2f, 0.2f)
+            }), "Polygon");
+
+            Assert.IsTrue(circleHit, "Expected circle visitor to generate sensor hit events.");
+            Assert.IsTrue(capsuleHit, "Expected capsule visitor to generate sensor hit events.");
+            Assert.IsTrue(polygonHit, "Expected polygon visitor to generate sensor hit events.");
+        }
+
+        private static bool RunContinuousSensorHitScenario(Shape shape, string visitorLabel)
+        {
+            World world = new World(new WorldDef().WithGravity(Vec2.Zero));
+
+            Body sensorBody = world.CreateBody(new BodyDef().AsStatic().At(0f, 0f));
+            sensorBody.CreateFixture(new FixtureDef(new CircleShape(0.5f)).AsSensor().WithUserData("Sensor"));
+
+            Body mover = world.CreateBody(new BodyDef().AsDynamic().At(-5f, 0f).IsBullet(false));
+            mover.CreateFixture(new FixtureDef(shape).WithDensity(1f).WithUserData(visitorLabel));
+            mover.LinearVelocity = new Vec2(30f, 0f);
+
+            bool hit = false;
+            world.Events.SensorHitEvents += e =>
+            {
+                if (e.Events == null)
+                {
+                    return;
+                }
+
+                for (int i = 0; i < e.Events.Length; ++i)
+                {
+                    if ((string?)e.Events[i].VisitorUserData == visitorLabel)
+                    {
+                        hit = true;
+                        return;
+                    }
+                }
+            };
+
+            for (int i = 0; i < 30 && !hit; ++i)
+            {
+                world.Step(1f / 60f);
+            }
+
+            return hit;
         }
     }
 }

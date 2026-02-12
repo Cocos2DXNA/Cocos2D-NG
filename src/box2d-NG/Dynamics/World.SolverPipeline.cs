@@ -37,6 +37,7 @@ namespace Box2DNG
                 {
                     _world.BuildIslands(awakeOnly: _world._def.EnableSleep);
                 }
+                _world.BuildConstraintGraph();
                 IntegrateVelocities(timeStep);
                 SolveVelocityConstraints(timeStep, dtRatio);
                 _world.RaiseContactImpulseEvents();
@@ -115,30 +116,23 @@ namespace Box2DNG
                 World.ContactSolverStats aggregateStats = new World.ContactSolverStats();
                 bool useSimd = _world._def.EnableContactSolverSimd && System.Numerics.Vector.IsHardwareAccelerated;
 
-                for (int islandIndex = 0; islandIndex < _world._awakeSet.Islands.Count; ++islandIndex)
+                if (useSimd)
                 {
-                    Island island = _world._awakeSet.Islands[islandIndex];
+                    _world._contactSolverSimd.Prepare(timeStep, dtRatio, _world._constraintGraph);
+                    _world._contactSolverSimd.WarmStart();
+                }
+                else
+                {
+                    _world._contactSolver.Prepare(timeStep, dtRatio, _world._constraintGraph);
+                    _world._contactSolver.WarmStart();
+                }
 
-                    if (!island.IsAwake)
+                for (int colorIndex = 0; colorIndex < Constants.GraphColorCount; ++colorIndex)
+                {
+                    System.Collections.Generic.List<JointHandle> joints = _world._constraintGraph.Colors[colorIndex].Joints;
+                    for (int i = 0; i < joints.Count; ++i)
                     {
-                        continue;
-                    }
-
-                    System.Collections.Generic.List<Contact> awakeContacts = FilterAwakeContacts(island.Contacts);
-                    if (useSimd)
-                    {
-                        _world._contactSolverSimd.Prepare(timeStep, dtRatio, awakeContacts);
-                        _world._contactSolverSimd.WarmStart();
-                    }
-                    else
-                    {
-                        _world._contactSolver.Prepare(timeStep, dtRatio, awakeContacts);
-                        _world._contactSolver.WarmStart();
-                    }
-
-                    for (int i = 0; i < island.Joints.Count; ++i)
-                    {
-                        JointHandle handle = island.Joints[i];
+                        JointHandle handle = joints[i];
                         if (_world.TryGetJointSolverSetType(handle, out SolverSetType setType) && setType != SolverSetType.Awake)
                         {
                             continue;
@@ -149,20 +143,25 @@ namespace Box2DNG
                         }
                         InitJointVelocityConstraints(handle, timeStep);
                     }
-                    for (int iter = 0; iter < _world._def.VelocityIterations; ++iter)
-                    {
-                        if (useSimd)
-                        {
-                            _world._contactSolverSimd.SolveVelocity(useBias: true);
-                        }
-                        else
-                        {
-                            _world._contactSolver.SolveVelocity(useBias: true);
-                        }
+                }
 
-                        for (int i = 0; i < island.Joints.Count; ++i)
+                for (int iter = 0; iter < _world._def.VelocityIterations; ++iter)
+                {
+                    if (useSimd)
+                    {
+                        _world._contactSolverSimd.SolveVelocity(useBias: true);
+                    }
+                    else
+                    {
+                        _world._contactSolver.SolveVelocity(useBias: true);
+                    }
+
+                    for (int colorIndex = 0; colorIndex < Constants.GraphColorCount; ++colorIndex)
+                    {
+                        System.Collections.Generic.List<JointHandle> joints = _world._constraintGraph.Colors[colorIndex].Joints;
+                        for (int i = 0; i < joints.Count; ++i)
                         {
-                            JointHandle handle = island.Joints[i];
+                            JointHandle handle = joints[i];
                             if (_world.TryGetJointSolverSetType(handle, out SolverSetType setType) && setType != SolverSetType.Awake)
                             {
                                 continue;
@@ -174,19 +173,19 @@ namespace Box2DNG
                             SolveJointVelocityConstraints(handle, timeStep);
                         }
                     }
+                }
 
-                    if (useSimd)
-                    {
-                        _world._contactSolverSimd.ApplyRestitution(_world._def.RestitutionThreshold);
-                        _world._contactSolverSimd.StoreImpulses();
-                        aggregateStats = SumStats(aggregateStats, _world._contactSolverSimd.GetStats());
-                    }
-                    else
-                    {
-                        _world._contactSolver.ApplyRestitution(_world._def.RestitutionThreshold);
-                        _world._contactSolver.StoreImpulses();
-                        aggregateStats = SumStats(aggregateStats, _world._contactSolver.GetStats());
-                    }
+                if (useSimd)
+                {
+                    _world._contactSolverSimd.ApplyRestitution(_world._def.RestitutionThreshold);
+                    _world._contactSolverSimd.StoreImpulses();
+                    aggregateStats = _world._contactSolverSimd.GetStats();
+                }
+                else
+                {
+                    _world._contactSolver.ApplyRestitution(_world._def.RestitutionThreshold);
+                    _world._contactSolver.StoreImpulses();
+                    aggregateStats = _world._contactSolver.GetStats();
                 }
 
                 _world._lastContactSolverStats = aggregateStats;
@@ -249,20 +248,23 @@ namespace Box2DNG
 
             private void SolvePositionConstraints(float timeStep)
             {
-                for (int islandIndex = 0; islandIndex < _world._awakeSet.Islands.Count; ++islandIndex)
+                for (int iter = 0; iter < _world._def.PositionIterations; ++iter)
                 {
-                    Island island = _world._awakeSet.Islands[islandIndex];
-                    if (!island.IsAwake)
+                    for (int colorIndex = 0; colorIndex < Constants.GraphColorCount; ++colorIndex)
                     {
-                        continue;
-                    }
-                    System.Collections.Generic.List<Contact> awakeContacts = FilterAwakeContacts(island.Contacts);
-                    for (int iter = 0; iter < _world._def.PositionIterations; ++iter)
-                    {
-                        _world.SolvePositionConstraints(awakeContacts);
-                        for (int i = 0; i < island.Joints.Count; ++i)
+                        System.Collections.Generic.List<Contact> contacts = _world._constraintGraph.Colors[colorIndex].Contacts;
+                        if (contacts.Count > 0)
                         {
-                            JointHandle handle = island.Joints[i];
+                            _world.SolvePositionConstraints(contacts);
+                        }
+                    }
+
+                    for (int colorIndex = 0; colorIndex < Constants.GraphColorCount; ++colorIndex)
+                    {
+                        System.Collections.Generic.List<JointHandle> joints = _world._constraintGraph.Colors[colorIndex].Joints;
+                        for (int i = 0; i < joints.Count; ++i)
+                        {
+                            JointHandle handle = joints[i];
                             if (_world.TryGetJointSolverSetType(handle, out SolverSetType setType) && setType != SolverSetType.Awake)
                             {
                                 continue;

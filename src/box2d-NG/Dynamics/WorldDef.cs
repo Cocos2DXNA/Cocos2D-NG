@@ -24,6 +24,7 @@ namespace Box2DNG
         public int VelocityIterations { get; private set; } = 12;
         public int PositionIterations { get; private set; } = 6;
         public int WorkerCount { get; private set; } = 1;
+        public int ArenaCapacity { get; private set; } = 1024 * 1024;
         public object? UserData { get; private set; }
 
         public Func<float, ulong, float, ulong, float>? FrictionCallback { get; private set; }
@@ -49,6 +50,7 @@ namespace Box2DNG
         public WorldDef WithVelocityIterations(int iterations) { VelocityIterations = Math.Max(1, iterations); return this; }
         public WorldDef WithPositionIterations(int iterations) { PositionIterations = Math.Max(1, iterations); return this; }
         public WorldDef WithWorkerCount(int count) { WorkerCount = Math.Max(1, count); return this; }
+        public WorldDef WithArenaCapacity(int bytes) { ArenaCapacity = Math.Max(0, bytes); return this; }
         public WorldDef WithUserData(object? data) { UserData = data; return this; }
         public WorldDef WithFrictionCallback(Func<float, ulong, float, ulong, float>? callback)
         {

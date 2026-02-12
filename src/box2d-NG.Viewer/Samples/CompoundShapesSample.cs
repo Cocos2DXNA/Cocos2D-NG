@@ -4,6 +4,7 @@ namespace Box2DNG.Viewer.Samples
 {
     public sealed class CompoundShapesSample : BaseSample
     {
+        private readonly Random _rng = new Random(1234);
         public override string Name => "CompoundShapes";
 
         public override void Build(World world)
@@ -80,9 +81,9 @@ namespace Box2DNG.Viewer.Samples
             }
         }
 
-        private static float RandomRange(float min, float max)
+        private float RandomRange(float min, float max)
         {
-            return (float)(min + Random.Shared.NextDouble() * (max - min));
+            return (float)(min + _rng.NextDouble() * (max - min));
         }
 
         private static Vec2[] BuildBoxVertices(float hx, float hy, Vec2 center, float angle)

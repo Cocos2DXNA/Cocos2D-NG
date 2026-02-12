@@ -22,6 +22,7 @@ namespace Box2DNG
         internal SolverSetType SolverSetType { get; set; } = SolverSetType.Awake;
         internal int SolverSetId { get; set; } = 0;
         internal int ColorIndex { get; set; } = -1;
+        internal int LocalIndex { get; set; } = -1;
         internal int EdgeIdA { get; set; } = -1;
         internal int EdgeIdB { get; set; } = -1;
         internal ContactEdge? EdgeA { get; set; }

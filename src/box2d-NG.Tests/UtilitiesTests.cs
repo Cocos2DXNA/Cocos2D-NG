@@ -240,6 +240,61 @@ namespace Box2DNG.Tests
             Assert.AreEqual(SolverSetType.Sleeping, contact.SolverSetType, "Expected contact to return to sleeping.");
             Assert.AreEqual(sleepingSetId, contact.SolverSetId, "Expected solver set id to be reused after sleep/wake cycle.");
         }
+
+        [TestMethod]
+        public void ConstraintGraph_ColorAssignmentOrder_IsDeterministic()
+        {
+            World world = new World(new WorldDef().WithGravity(Vec2.Zero).EnableSleeping(false));
+            MotionLocks locks = MotionLocks.LinearX | MotionLocks.LinearY | MotionLocks.AngularZ;
+            Body bodyA = world.CreateBody(new BodyDef().AsDynamic().At(0f, 0f).LockMotion(locks));
+            Body bodyB = world.CreateBody(new BodyDef().AsDynamic().At(1.2f, 0f).LockMotion(locks));
+            Body bodyC = world.CreateBody(new BodyDef().AsDynamic().At(0.6f, 1.0392f).LockMotion(locks));
+            bodyA.CreateFixture(new FixtureDef(new CircleShape(1f)).WithDensity(1f));
+            bodyB.CreateFixture(new FixtureDef(new CircleShape(1f)).WithDensity(1f));
+            bodyC.CreateFixture(new FixtureDef(new CircleShape(1f)).WithDensity(1f));
+
+            world.Step(1f / 60f);
+
+            Contact ab = FindContact(world, bodyA, bodyB);
+            Contact ac = FindContact(world, bodyA, bodyC);
+            Contact bc = FindContact(world, bodyB, bodyC);
+
+            Assert.AreEqual(0, ab.ColorIndex, "Expected AB to be assigned to graph color 0.");
+            Assert.AreEqual(1, ac.ColorIndex, "Expected AC to be assigned to graph color 1.");
+            Assert.AreEqual(2, bc.ColorIndex, "Expected BC to be assigned to graph color 2.");
+
+            for (int i = 0; i < 3; ++i)
+            {
+                world.Step(1f / 60f);
+            }
+
+            Assert.AreEqual(0, FindContact(world, bodyA, bodyB).ColorIndex, "Expected AB color to remain stable.");
+            Assert.AreEqual(1, FindContact(world, bodyA, bodyC).ColorIndex, "Expected AC color to remain stable.");
+            Assert.AreEqual(2, FindContact(world, bodyB, bodyC).ColorIndex, "Expected BC color to remain stable.");
+        }
+
+        private static Contact FindContact(World world, Body bodyA, Body bodyB)
+        {
+            for (int i = 0; i < world.Contacts.Count; ++i)
+            {
+                Contact contact = world.Contacts[i];
+                if (contact.FixtureA == null || contact.FixtureB == null)
+                {
+                    continue;
+                }
+
+                Body a = contact.FixtureA.Body;
+                Body b = contact.FixtureB.Body;
+                if ((a == bodyA && b == bodyB) || (a == bodyB && b == bodyA))
+                {
+                    return contact;
+                }
+            }
+
+            Assert.Fail("Expected contact between requested bodies.");
+            return null!;
+        }
+
         [TestMethod]
         public void HashSet64_AddRemoveContains_TracksCount()
         {
@@ -286,6 +341,198 @@ namespace Box2DNG.Tests
             pool.Free(reused);
 
             Assert.AreEqual(0, pool.Count);
+        }
+
+        [TestMethod]
+        public void WorldAllocationStats_TracksWorldCounts()
+        {
+            World world = new World(new WorldDef().WithGravity(Vec2.Zero).EnableSleeping(false));
+            Body bodyA = world.CreateBody(new BodyDef().AsDynamic().At(0f, 0f));
+            Body bodyB = world.CreateBody(new BodyDef().AsDynamic().At(0.6f, 0f));
+            bodyA.CreateFixture(new FixtureDef(new CircleShape(0.5f)).WithDensity(1f));
+            bodyB.CreateFixture(new FixtureDef(new CircleShape(0.5f)).WithDensity(1f));
+            world.CreateJoint(new DistanceJointDef(bodyA, bodyB, bodyA.GetWorldCenter(), bodyB.GetWorldCenter()));
+
+            world.Step(1f / 60f);
+            World.AllocationStats stats = world.GetAllocationStats();
+
+            Assert.AreEqual(2, stats.BodyCount, "Expected body count to match world.");
+            Assert.AreEqual(2, stats.FixtureCount, "Expected fixture count to match world.");
+            Assert.AreEqual(1, stats.JointCount, "Expected joint count to match world.");
+            Assert.AreEqual(stats.BodyCount, stats.BodyIdCount, "Expected body id pool count parity.");
+            Assert.AreEqual(stats.FixtureCount, stats.FixtureIdCount, "Expected fixture id pool count parity.");
+            Assert.AreEqual(stats.JointCount, stats.JointIdCount, "Expected joint id pool count parity.");
+            Assert.AreEqual(stats.ContactCount, stats.ContactIdCount, "Expected contact id pool count parity.");
+            Assert.IsTrue(stats.AllocatorBytes >= 0, "Expected allocator byte count to be available.");
+        }
+
+        [TestMethod]
+        public void WorldAllocationStats_ReflectsFixtureDestroy()
+        {
+            World world = new World(new WorldDef().WithGravity(Vec2.Zero).EnableSleeping(false));
+            Body body = world.CreateBody(new BodyDef().AsDynamic().At(0f, 0f));
+            Fixture fixture = body.CreateFixture(new FixtureDef(new CircleShape(0.5f)).WithDensity(1f));
+
+            World.AllocationStats before = world.GetAllocationStats();
+            Assert.AreEqual(1, before.FixtureCount);
+            Assert.AreEqual(1, before.FixtureIdCount);
+
+            body.DestroyFixture(fixture);
+            world.UpdateContacts();
+
+            World.AllocationStats after = world.GetAllocationStats();
+            Assert.AreEqual(0, after.FixtureCount);
+            Assert.AreEqual(0, after.FixtureIdCount);
+            Assert.IsTrue(after.FixtureIdCapacity >= before.FixtureIdCapacity, "Expected fixture id capacity to be monotonic.");
+        }
+
+        [TestMethod]
+        public void WorldHandle_CreateValidateDestroy_Works()
+        {
+            WorldId id = Box2D.CreateWorld(new WorldDef().WithGravity(Vec2.Zero));
+            Assert.IsTrue(Box2D.IsValid(id), "Expected created world id to be valid.");
+            Assert.IsTrue(Box2D.TryGetWorld(id, out World? world) && world != null, "Expected lookup of created world.");
+            Assert.AreEqual(id, world!.Id, "Expected world to expose matching world id.");
+
+            bool destroyed = Box2D.DestroyWorld(id);
+            Assert.IsTrue(destroyed, "Expected destroy to succeed.");
+            Assert.IsFalse(Box2D.IsValid(id), "Expected destroyed world id to be invalid.");
+            Assert.IsFalse(Box2D.TryGetWorld(id, out _), "Expected destroyed world lookup to fail.");
+        }
+
+        [TestMethod]
+        public void WorldHandle_Generation_IncrementsAfterDestroy()
+        {
+            WorldId first = Box2D.CreateWorld(new WorldDef().WithGravity(Vec2.Zero));
+            Assert.IsTrue(Box2D.DestroyWorld(first), "Expected first destroy to succeed.");
+
+            WorldId second = Box2D.CreateWorld(new WorldDef().WithGravity(Vec2.Zero));
+            try
+            {
+                Assert.AreEqual(first.Index1, second.Index1, "Expected world slot reuse.");
+                Assert.AreNotEqual(first.Generation, second.Generation, "Expected generation to increment on reuse.");
+            }
+            finally
+            {
+                Box2D.DestroyWorld(second);
+            }
+        }
+
+        [TestMethod]
+        public void WorldHandle_StaleIdsInvalidAcrossSlotChurn()
+        {
+            const int iterations = 12;
+            System.Collections.Generic.List<WorldId> stale = new System.Collections.Generic.List<WorldId>(iterations);
+
+            WorldId current = Box2D.CreateWorld(new WorldDef().WithGravity(Vec2.Zero));
+            stale.Add(current);
+
+            for (int i = 0; i < iterations - 1; ++i)
+            {
+                Assert.IsTrue(Box2D.DestroyWorld(current), $"Expected destroy in churn iteration {i}.");
+                current = Box2D.CreateWorld(new WorldDef().WithGravity(Vec2.Zero));
+                stale.Add(current);
+            }
+
+            try
+            {
+                for (int i = 0; i < stale.Count - 1; ++i)
+                {
+                    WorldId id = stale[i];
+                    Assert.IsFalse(Box2D.IsValid(id), $"Expected stale id[{i}] to be invalid.");
+                    Assert.IsFalse(Box2D.TryGetWorld(id, out _), $"Expected stale id[{i}] lookup to fail.");
+                }
+
+                Assert.IsTrue(Box2D.IsValid(current), "Expected newest id to remain valid.");
+            }
+            finally
+            {
+                Box2D.DestroyWorld(current);
+            }
+        }
+
+        [TestMethod]
+        public void WorldHandle_MaxWorldsBoundary_EnforcedAndRecoverable()
+        {
+            const int maxWorlds = 128;
+            System.Collections.Generic.List<WorldId> ids = new System.Collections.Generic.List<WorldId>(maxWorlds);
+
+            try
+            {
+                for (int i = 0; i < maxWorlds; ++i)
+                {
+                    ids.Add(Box2D.CreateWorld(new WorldDef().WithGravity(Vec2.Zero)));
+                }
+
+                Assert.ThrowsException<System.InvalidOperationException>(
+                    () => Box2D.CreateWorld(new WorldDef().WithGravity(Vec2.Zero)),
+                    "Expected create to fail once world slots are exhausted.");
+
+                WorldId victim = ids[0];
+                Assert.IsTrue(Box2D.DestroyWorld(victim), "Expected destroy at boundary.");
+                ids.RemoveAt(0);
+
+                WorldId reused = Box2D.CreateWorld(new WorldDef().WithGravity(Vec2.Zero));
+                try
+                {
+                    Assert.AreEqual(victim.Index1, reused.Index1, "Expected boundary slot reuse.");
+                    Assert.AreNotEqual(victim.Generation, reused.Generation, "Expected generation increment after boundary reuse.");
+                }
+                finally
+                {
+                    Box2D.DestroyWorld(reused);
+                }
+            }
+            finally
+            {
+                for (int i = 0; i < ids.Count; ++i)
+                {
+                    Box2D.DestroyWorld(ids[i]);
+                }
+            }
+        }
+
+        [TestMethod]
+        public void ArenaAllocator_LifoAllocFree_TracksAllocation()
+        {
+            ArenaAllocator arena = new ArenaAllocator(256);
+
+            ArenaBlock bytes = arena.AllocateBytes(48, "bytes");
+            int[] ints = arena.AllocateArray<int>(10, "ints");
+            float[] floats = arena.AllocateArray<float>(8, "floats");
+
+            Assert.IsTrue(arena.Allocation > 0, "Expected outstanding allocation.");
+            int peak = arena.MaxAllocation;
+            Assert.IsTrue(peak >= arena.Allocation, "Expected max allocation to track peak.");
+
+            arena.FreeArray(floats);
+            arena.FreeArray(ints);
+            arena.FreeBytes(bytes);
+
+            Assert.AreEqual(0, arena.Allocation, "Expected allocation to return to zero after LIFO frees.");
+            Assert.AreEqual(peak, arena.MaxAllocation, "Expected max allocation to preserve peak usage.");
+
+            arena.Destroy();
+            Assert.AreEqual(0, arena.Capacity, "Expected destroy to clear capacity.");
+        }
+
+        [TestMethod]
+        public void ArenaAllocator_Grow_ExpandsCapacityToPeak()
+        {
+            ArenaAllocator arena = new ArenaAllocator(64);
+            int initialCapacity = arena.Capacity;
+
+            int[] large = arena.AllocateArray<int>(256, "large");
+            int peak = arena.MaxAllocation;
+            Assert.IsTrue(peak > initialCapacity, "Expected peak to exceed initial capacity.");
+
+            arena.FreeArray(large);
+            Assert.AreEqual(0, arena.Allocation, "Expected zero outstanding allocation before grow.");
+
+            arena.Grow();
+            Assert.IsTrue(arena.Capacity > initialCapacity, "Expected grow to increase capacity.");
+
+            arena.Destroy();
         }
     }
 }

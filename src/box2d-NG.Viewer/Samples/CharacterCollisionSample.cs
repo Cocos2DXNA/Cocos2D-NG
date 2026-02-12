@@ -143,8 +143,18 @@ namespace Box2DNG.Viewer.Samples
                 Vec2 p1 = vertices[i1];
                 Vec2 p2 = vertices[i2];
 
-                Vec2 ghost1 = vertices[(i1 - 1 + count) % count];
-                Vec2 ghost2 = vertices[(i2 + 1) % count];
+                Vec2 ghost1;
+                Vec2 ghost2;
+                if (loop)
+                {
+                    ghost1 = vertices[(i1 - 1 + count) % count];
+                    ghost2 = vertices[(i2 + 1) % count];
+                }
+                else
+                {
+                    ghost1 = i1 > 0 ? vertices[i1 - 1] : p1;
+                    ghost2 = i2 + 1 < count ? vertices[i2 + 1] : p2;
+                }
 
                 ChainSegmentShape seg = new ChainSegmentShape(p1, p2, ghost1, ghost2);
                 body.CreateFixture(new FixtureDef(seg).WithDensity(0f));

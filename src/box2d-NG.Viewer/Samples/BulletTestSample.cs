@@ -4,6 +4,7 @@ namespace Box2DNG.Viewer.Samples
 {
     public sealed class BulletTestSample : BaseSample
     {
+        private readonly Random _rng = new Random(1234);
         private Body? _body;
         private Body? _bullet;
         private float _x;
@@ -75,9 +76,9 @@ namespace Box2DNG.Viewer.Samples
             _bullet.AngularVelocity = 0f;
         }
 
-        private static float RandomRange(float min, float max)
+        private float RandomRange(float min, float max)
         {
-            return (float)(min + Random.Shared.NextDouble() * (max - min));
+            return (float)(min + _rng.NextDouble() * (max - min));
         }
     }
 }

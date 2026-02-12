@@ -15,4 +15,8 @@
   <ItemGroup>
     <ProjectReference Include="..\box2d-NG\box2d-NG.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\box2d-NG.Viewer\Samples\*.cs" Link="ViewerSamples\%(Filename)%(Extension)" />
+  </ItemGroup>
 </Project>
