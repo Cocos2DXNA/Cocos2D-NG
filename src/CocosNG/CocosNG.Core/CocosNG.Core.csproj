@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Configurations>Debug;Release;DebugWindows;DebugAndroid</Configurations>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Folder Include="Input\" />
+    <Folder Include="Content\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\XnaNG\XnaNG.Framework\XnaNG.Framework.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <RootNamespace>Box2D.Viewer</RootNamespace>
+    <AssemblyName>Box2D.Viewer</AssemblyName>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\box2d.csproj" />
+    <ProjectReference Include="..\Box2D.Tests\Box2D.Tests.csproj" />
+  </ItemGroup>
+</Project>

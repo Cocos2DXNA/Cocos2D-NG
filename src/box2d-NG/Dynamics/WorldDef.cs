@@ -1,0 +1,66 @@
+using System;
+
+namespace Box2DNG
+{
+    public sealed class WorldDef
+    {
+        public Vec2 Gravity { get; private set; } = new Vec2(0f, -10f);
+        public float RestitutionThreshold { get; private set; } = 1f;
+        public float HitEventThreshold { get; private set; } = 1f;
+        public float ContactHertz { get; private set; } = 120f;
+        public float ContactDampingRatio { get; private set; } = 1f;
+        public float ContactSpeed { get; private set; } = 15f;
+        public float MaximumLinearSpeed { get; private set; } = 1000f;
+        public float MaximumAngularSpeed { get; private set; } = 50f;
+        public float MaximumTranslation { get; private set; } = 2f;
+        public float MaximumRotation { get; private set; } = 0.5f * MathF.PI;
+        public bool EnableSleep { get; private set; } = true;
+        public bool EnableContinuous { get; private set; } = true;
+        public bool EnableContactSoftening { get; private set; } = true;
+        public bool UseSoftConstraints { get; private set; } = true;
+        public bool EnableContactHertzClamp { get; private set; }
+        public bool EnableContactSolverSimd { get; private set; }
+        public int MaxSubSteps { get; private set; } = 16;
+        public int VelocityIterations { get; private set; } = 12;
+        public int PositionIterations { get; private set; } = 6;
+        public int WorkerCount { get; private set; } = 1;
+        public int ArenaCapacity { get; private set; } = 1024 * 1024;
+        public object? UserData { get; private set; }
+
+        public Func<float, ulong, float, ulong, float>? FrictionCallback { get; private set; }
+        public Func<float, ulong, float, ulong, float>? RestitutionCallback { get; private set; }
+
+        public WorldDef WithGravity(Vec2 gravity) { Gravity = gravity; return this; }
+        public WorldDef WithRestitutionThreshold(float value) { RestitutionThreshold = value; return this; }
+        public WorldDef WithHitEventThreshold(float value) { HitEventThreshold = value; return this; }
+        public WorldDef WithContactHertz(float hertz) { ContactHertz = hertz; return this; }
+        public WorldDef WithContactDamping(float ratio) { ContactDampingRatio = ratio; return this; }
+        public WorldDef WithContactSpeed(float speed) { ContactSpeed = speed; return this; }
+        public WorldDef WithMaximumLinearSpeed(float speed) { MaximumLinearSpeed = speed; return this; }
+        public WorldDef WithMaximumAngularSpeed(float speed) { MaximumAngularSpeed = speed; return this; }
+        public WorldDef WithMaximumTranslation(float value) { MaximumTranslation = value; return this; }
+        public WorldDef WithMaximumRotation(float value) { MaximumRotation = value; return this; }
+        public WorldDef EnableSleeping(bool enable) { EnableSleep = enable; return this; }
+        public WorldDef EnableContinuousCollision(bool enable) { EnableContinuous = enable; return this; }
+        public WorldDef EnableSoftening(bool enable) { EnableContactSoftening = enable; return this; }
+        public WorldDef UseSoftConstraintsSolver(bool enable) { UseSoftConstraints = enable; return this; }
+        public WorldDef EnableContactHertzClamping(bool enable) { EnableContactHertzClamp = enable; return this; }
+        public WorldDef EnableContactSolverSimdPath(bool enable) { EnableContactSolverSimd = enable; return this; }
+        public WorldDef WithMaxSubSteps(int steps) { MaxSubSteps = Math.Max(1, steps); return this; }
+        public WorldDef WithVelocityIterations(int iterations) { VelocityIterations = Math.Max(1, iterations); return this; }
+        public WorldDef WithPositionIterations(int iterations) { PositionIterations = Math.Max(1, iterations); return this; }
+        public WorldDef WithWorkerCount(int count) { WorkerCount = Math.Max(1, count); return this; }
+        public WorldDef WithArenaCapacity(int bytes) { ArenaCapacity = Math.Max(0, bytes); return this; }
+        public WorldDef WithUserData(object? data) { UserData = data; return this; }
+        public WorldDef WithFrictionCallback(Func<float, ulong, float, ulong, float>? callback)
+        {
+            FrictionCallback = callback;
+            return this;
+        }
+        public WorldDef WithRestitutionCallback(Func<float, ulong, float, ulong, float>? callback)
+        {
+            RestitutionCallback = callback;
+            return this;
+        }
+    }
+}
