@@ -9,7 +9,8 @@ namespace Box2DNG.Viewer.Samples
             Body ground = world.CreateBody(new BodyDef().AsStatic().At(0f, 0f));
             ground.CreateFixture(new FixtureDef(new SegmentShape(new Vec2(-40f, 0f), new Vec2(40f, 0f))));
 
-            // First gear assembly (static anchor + dynamic bar + dynamic gear).
+            // First gear assembly matches the original Box2D setup:
+            // static small gear at y=9, dynamic large gear at y=8, dynamic slider-like bar at y=6.
             {
                 CircleShape circle1 = new CircleShape(1f);
                 CircleShape circle2 = new CircleShape(2f);
@@ -19,10 +20,10 @@ namespace Box2DNG.Viewer.Samples
                 body1.CreateFixture(new FixtureDef(circle1));
 
                 Body body2 = world.CreateBody(new BodyDef().AsDynamic().At(10f, 8f));
-                body2.CreateFixture(new FixtureDef(box).WithDensity(5f));
+                body2.CreateFixture(new FixtureDef(circle2).WithDensity(5f));
 
                 Body body3 = world.CreateBody(new BodyDef().AsDynamic().At(10f, 6f));
-                body3.CreateFixture(new FixtureDef(circle2).WithDensity(5f));
+                body3.CreateFixture(new FixtureDef(box).WithDensity(5f));
 
                 RevoluteJoint joint1 = world.CreateJoint(new RevoluteJointDef(body2, body1, new Vec2(10f, 9f)));
                 RevoluteJoint joint2 = world.CreateJoint(new RevoluteJointDef(body2, body3, new Vec2(10f, 6f)));
