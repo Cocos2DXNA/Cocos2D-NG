@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using CocosNG.Core.Content;
 
 
 namespace CocosNG.Core
@@ -1105,7 +1106,7 @@ namespace CocosNG.Core
                 {
                     if (!textureCache.Contains("cc_fps_images"))
                     {
-                        texture = textureCache.AddImage(CCFPSImage.PngData, "cc_fps_images", SurfaceFormat.Bgra4444);
+                        texture = textureCache.AddImage(CCFPSImage.PngData, "cc_fps_images", CCTexturePixelFormat.Bgra4444);
                     }
                     else
                     {

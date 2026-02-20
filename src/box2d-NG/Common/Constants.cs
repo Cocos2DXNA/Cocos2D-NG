@@ -13,6 +13,7 @@ namespace Box2DNG
         public const float PolygonRadius = 2f * LinearSlop;
         public const float Baumgarte = 0.2f;
         public const float MaxLinearCorrection = 0.2f;
+        public const float MaxAngularCorrection = 8.0f / 180.0f * MathF.PI;
         public const float AngularSlop = 2f * MathF.PI / 180f;
         public const float VelocityThreshold = 1.0f;
         public const float TimeToSleep = 0.5f;

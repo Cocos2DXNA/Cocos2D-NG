@@ -7,8 +7,6 @@ using System.Reflection;
 using System.Text;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using BitMiracle.LibTiff.Classic;
-                using (var stream = contentManager.GetAssetStream(file))
 using CocosNG.Core;
 
 namespace CocosNG.Core.Content

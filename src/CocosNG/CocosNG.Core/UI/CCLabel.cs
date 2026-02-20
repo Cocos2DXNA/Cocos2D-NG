@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using Microsoft.Xna.Framework.Graphics;
+using CocosNG.Core.Content;
 using CocosNG.Core;
 
 namespace CocosNG.Core.UI
@@ -280,7 +281,7 @@ namespace CocosNG.Core.UI
 
             if (m_bTextureDirty)
             {
-                m_pTexture.InitWithRawData(m_pData, SurfaceFormat.Color, m_nWidth, m_nHeight, true);
+                m_pTexture.InitWithRawData(m_pData, CCTexturePixelFormat.Color, m_nWidth, m_nHeight, true);
                 m_bTextureDirty = false;
             }
 

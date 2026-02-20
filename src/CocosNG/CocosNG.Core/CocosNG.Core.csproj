@@ -5,11 +5,27 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <Configurations>Debug;Release;DebugWindows;DebugAndroid</Configurations>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
   </PropertyGroup>
 
   <ItemGroup>
     <Folder Include="Input\" />
     <Folder Include="Content\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="CCDrawManager.cs" />
+    <Compile Include="Content\CCContentManager.cs" />
+    <Compile Include="Content\CCTexture2D.cs" />
+    <Compile Include="Content\CCTextureCache.cs" />
+    <Compile Include="Nodes\CCAnimation.cs" />
+    <Compile Include="Nodes\CCNode.cs" />
+    <Compile Include="Nodes\CCRenderTexture.cs" />
+    <Compile Include="Primitives\CCPoint.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BitMiracle.LibTiff.NET" Version="2.4.660" />
   </ItemGroup>
 
   <ItemGroup>

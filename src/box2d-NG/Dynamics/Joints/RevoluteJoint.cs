@@ -4,228 +4,104 @@ namespace Box2DNG
 {
     public sealed class RevoluteJoint
     {
-        public int Id { get; internal set; } = -1;
-        public Body BodyA { get; }
-        public Body BodyB { get; }
-        public Vec2 LocalAnchorA { get; }
-        public Vec2 LocalAnchorB { get; }
-        public float ReferenceAngle { get; }
-        public bool EnableMotor { get; private set; }
-        public float MotorSpeed { get; private set; }
-        public float MaxMotorTorque { get; private set; }
-        public bool EnableLimit { get; private set; }
-        public float LowerAngle { get; private set; }
-        public float UpperAngle { get; private set; }
-        public bool CollideConnected { get; }
+        internal World World;
+        internal int Id;
+        internal int Index;
 
-        private Vec2 _impulse;
-        private float _motorImpulse;
-        private float _limitImpulse;
-        private Mat22 _mass;
-        private float _motorMass;
-        private Vec2 _rA;
-        private Vec2 _rB;
-
-        public RevoluteJoint(RevoluteJointDef def)
+        internal RevoluteJoint(World world, int id, int index)
         {
-            BodyA = def.BodyA;
-            BodyB = def.BodyB;
-            LocalAnchorA = def.LocalAnchorA;
-            LocalAnchorB = def.LocalAnchorB;
-            ReferenceAngle = def.ReferenceAngle;
-            EnableMotor = def.EnableMotor;
-            MotorSpeed = def.MotorSpeed;
-            MaxMotorTorque = def.MaxMotorTorque;
-            EnableLimit = def.EnableLimit;
-            LowerAngle = def.LowerAngle;
-            UpperAngle = def.UpperAngle;
-            CollideConnected = def.CollideConnected;
+            World = world;
+            Id = id;
+            Index = index;
         }
 
-        public void SetMotorEnabled(bool enable) => EnableMotor = enable;
+        public Body BodyA => World.GetBody(World._revoluteJointsData[Index].BodyA);
+        public Body BodyB => World.GetBody(World._revoluteJointsData[Index].BodyB);
 
-        public void SetMotorSpeed(float speed) => MotorSpeed = speed;
+        public Vec2 LocalAnchorA => World._revoluteJointsData[Index].LocalAnchorA;
+        public Vec2 LocalAnchorB => World._revoluteJointsData[Index].LocalAnchorB;
+        public float ReferenceAngle => World._revoluteJointsData[Index].ReferenceAngle;
 
-        public void SetMaxMotorTorque(float torque) => MaxMotorTorque = MathF.Max(0f, torque);
-
-        public void SetLimitEnabled(bool enable) => EnableLimit = enable;
-
-        public void SetLimits(float lowerAngle, float upperAngle)
+        public bool EnableMotor
         {
-            EnableLimit = true;
-            LowerAngle = MathF.Min(lowerAngle, upperAngle);
-            UpperAngle = MathF.Max(lowerAngle, upperAngle);
+            get => World._revoluteJointsData[Index].EnableMotor;
+            set => World._revoluteJointsData[Index].EnableMotor = value;
         }
 
-        internal void InitVelocityConstraints(float dt)
+        public float MotorSpeed
         {
-            _rA = Rot.Mul(BodyA.Transform.Q, LocalAnchorA - BodyA.LocalCenter);
-            _rB = Rot.Mul(BodyB.Transform.Q, LocalAnchorB - BodyB.LocalCenter);
-
-            float mA = BodyA.InverseMass;
-            float mB = BodyB.InverseMass;
-            float iA = BodyA.InverseInertia;
-            float iB = BodyB.InverseInertia;
-
-            float k11 = mA + mB + iA * _rA.Y * _rA.Y + iB * _rB.Y * _rB.Y;
-            float k12 = -iA * _rA.X * _rA.Y - iB * _rB.X * _rB.Y;
-            float k22 = mA + mB + iA * _rA.X * _rA.X + iB * _rB.X * _rB.X;
-
-            _mass = new Mat22(new Vec2(k11, k12), new Vec2(k12, k22));
-            _motorMass = iA + iB;
-            if (_motorMass > 0f)
+            get => World._revoluteJointsData[Index].MotorSpeed;
+            set
             {
-                _motorMass = 1f / _motorMass;
-            }
-
-            if (!EnableLimit)
-            {
-                _limitImpulse = 0f;
-            }
-            if (!EnableMotor)
-            {
-                _motorImpulse = 0f;
-            }
-
-            // Warm start using last step's impulses.
-            if (_impulse.X != 0f || _impulse.Y != 0f || _motorImpulse != 0f || _limitImpulse != 0f)
-            {
-                Vec2 P = _impulse;
-                BodyA.LinearVelocity -= mA * P;
-                BodyA.AngularVelocity -= iA * (Vec2.Cross(_rA, P) + _motorImpulse + _limitImpulse);
-                BodyB.LinearVelocity += mB * P;
-                BodyB.AngularVelocity += iB * (Vec2.Cross(_rB, P) + _motorImpulse + _limitImpulse);
+                World._revoluteJointsData[Index].MotorSpeed = value;
+                // Wake bodies
+                BodyA.SetAwake(true);
+                BodyB.SetAwake(true);
             }
         }
 
-        internal void SolveVelocityConstraints(float dt)
+        public float MaxMotorTorque
         {
-            float mA = BodyA.InverseMass;
-            float mB = BodyB.InverseMass;
-            float iA = BodyA.InverseInertia;
-            float iB = BodyB.InverseInertia;
-
-            if (EnableMotor)
-            {
-                float Cdot = BodyB.AngularVelocity - BodyA.AngularVelocity - MotorSpeed;
-                float impulse = -_motorMass * Cdot;
-                float maxImpulse = MaxMotorTorque * dt;
-                float newImpulse = MathFng.Clamp(_motorImpulse + impulse, -maxImpulse, maxImpulse);
-                float applied = newImpulse - _motorImpulse;
-                _motorImpulse = newImpulse;
-
-                BodyA.AngularVelocity -= iA * applied;
-                BodyB.AngularVelocity += iB * applied;
-            }
-
-            if (EnableLimit)
-            {
-                float angle = (BodyB.Transform.Q.Angle - BodyA.Transform.Q.Angle) - ReferenceAngle;
-                if (angle < LowerAngle)
-                {
-                    float limitC = angle - LowerAngle;
-                    float Cdot = BodyB.AngularVelocity - BodyA.AngularVelocity;
-                    float limitImpulse = -_motorMass * (Cdot + MathF.Min(0f, limitC) * 0.2f);
-                    float prevImpulse = _limitImpulse;
-                    _limitImpulse = MathF.Min(prevImpulse + limitImpulse, 0f);
-                    limitImpulse = _limitImpulse - prevImpulse;
-
-                    BodyA.AngularVelocity -= iA * limitImpulse;
-                    BodyB.AngularVelocity += iB * limitImpulse;
-                }
-                else if (angle > UpperAngle)
-                {
-                    float limitC = angle - UpperAngle;
-                    float Cdot = BodyB.AngularVelocity - BodyA.AngularVelocity;
-                    float limitImpulse = -_motorMass * (Cdot + MathF.Max(0f, limitC) * 0.2f);
-                    float prevImpulse = _limitImpulse;
-                    _limitImpulse = MathF.Max(prevImpulse + limitImpulse, 0f);
-                    limitImpulse = _limitImpulse - prevImpulse;
-
-                    BodyA.AngularVelocity -= iA * limitImpulse;
-                    BodyB.AngularVelocity += iB * limitImpulse;
-                }
-                else
-                {
-                    _limitImpulse = 0f;
-                }
-            }
-
-            Vec2 vA = BodyA.LinearVelocity + Vec2.Cross(BodyA.AngularVelocity, _rA);
-            Vec2 vB = BodyB.LinearVelocity + Vec2.Cross(BodyB.AngularVelocity, _rB);
-            Vec2 Cdot2 = vB - vA;
-
-            Vec2 impulse2 = Solve22(_mass, -Cdot2);
-            _impulse += impulse2;
-
-            BodyA.LinearVelocity -= mA * impulse2;
-            BodyB.LinearVelocity += mB * impulse2;
-            BodyA.AngularVelocity -= iA * Vec2.Cross(_rA, impulse2);
-            BodyB.AngularVelocity += iB * Vec2.Cross(_rB, impulse2);
+            get => World._revoluteJointsData[Index].MaxMotorTorque;
+            set => World._revoluteJointsData[Index].MaxMotorTorque = value;
         }
 
-        internal void SolvePositionConstraints()
+        public bool EnableLimit
         {
-            float mA = BodyA.InverseMass;
-            float mB = BodyB.InverseMass;
-            float iA = BodyA.InverseInertia;
-            float iB = BodyB.InverseInertia;
-
-            if (EnableLimit)
+            get => World._revoluteJointsData[Index].EnableLimit;
+            set
             {
-                float angle = (BodyB.Transform.Q.Angle - BodyA.Transform.Q.Angle) - ReferenceAngle;
-                float limitC = 0f;
-                if (angle < LowerAngle)
-                {
-                    limitC = angle - LowerAngle;
-                }
-                else if (angle > UpperAngle)
-                {
-                    limitC = angle - UpperAngle;
-                }
-
-                if (limitC != 0f)
-                {
-                    float limitImpulse = -_motorMass * limitC;
-                    float newAngleA = BodyA.Transform.Q.Angle - iA * limitImpulse;
-                    float newAngleB = BodyB.Transform.Q.Angle + iB * limitImpulse;
-                    BodyA.SetTransformFromCenter(BodyA.GetWorldCenter(), newAngleA);
-                    BodyB.SetTransformFromCenter(BodyB.GetWorldCenter(), newAngleB);
-                }
+                World._revoluteJointsData[Index].EnableLimit = value;
+                BodyA.SetAwake(true);
+                BodyB.SetAwake(true);
             }
-
-            Vec2 rA = Rot.Mul(BodyA.Transform.Q, LocalAnchorA - BodyA.LocalCenter);
-            Vec2 rB = Rot.Mul(BodyB.Transform.Q, LocalAnchorB - BodyB.LocalCenter);
-            Vec2 pA = BodyA.GetWorldCenter() + rA;
-            Vec2 pB = BodyB.GetWorldCenter() + rB;
-            Vec2 positionC = pB - pA;
-
-            float k11 = mA + mB + iA * rA.Y * rA.Y + iB * rB.Y * rB.Y;
-            float k12 = -iA * rA.X * rA.Y - iB * rB.X * rB.Y;
-            float k22 = mA + mB + iA * rA.X * rA.X + iB * rB.X * rB.X;
-            Mat22 k = new Mat22(new Vec2(k11, k12), new Vec2(k12, k22));
-            Vec2 positionImpulse = Solve22(k, -positionC);
-
-            Vec2 centerA = BodyA.GetWorldCenter() - mA * positionImpulse;
-            Vec2 centerB = BodyB.GetWorldCenter() + mB * positionImpulse;
-            float angleA = BodyA.Transform.Q.Angle - iA * Vec2.Cross(rA, positionImpulse);
-            float angleB = BodyB.Transform.Q.Angle + iB * Vec2.Cross(rB, positionImpulse);
-            BodyA.SetTransformFromCenter(centerA, angleA);
-            BodyB.SetTransformFromCenter(centerB, angleB);
         }
 
-        private static Vec2 Solve22(Mat22 m, Vec2 b)
+        public float LowerAngle => World._revoluteJointsData[Index].LowerAngle;
+        public float UpperAngle => World._revoluteJointsData[Index].UpperAngle;
+        public bool CollideConnected => World._revoluteJointsData[Index].CollideConnected;
+
+        public float GetMotorTorque(float invDt)
         {
-            float a11 = m.Ex.X;
-            float a12 = m.Ey.X;
-            float a21 = m.Ex.Y;
-            float a22 = m.Ey.Y;
-            float det = a11 * a22 - a12 * a21;
-            if (det != 0f)
+            return World._revoluteJointsData[Index].MotorImpulse * invDt;
+        }
+
+        public float GetJointAngle()
+        {
+             Body bA = BodyA;
+             Body bB = BodyB;
+             return bB.Rotation.Angle - bA.Rotation.Angle - ReferenceAngle;
+        }
+
+        public float GetJointSpeed()
+        {
+            Body bA = BodyA;
+            Body bB = BodyB;
+            return bB.AngularVelocity - bA.AngularVelocity;
+        }
+
+        public void SetMotorSpeed(float speed)
+        {
+            MotorSpeed = speed;
+        }
+
+        public void SetMotorEnabled(bool flag)
+        {
+            EnableMotor = flag;
+        }
+
+        public void SetLimits(float lower, float upper)
+        {
+            ref RevoluteJointData data = ref World._revoluteJointsData[Index];
+            if (lower != data.LowerAngle || upper != data.UpperAngle)
             {
-                det = 1f / det;
+                data.LowerAngle = lower;
+                data.UpperAngle = upper;
+                data.Impulse = Vec2.Zero;
+                data.LimitImpulse = 0f;
+                BodyA.SetAwake(true);
+                BodyB.SetAwake(true);
             }
-            return new Vec2(det * (a22 * b.X - a12 * b.Y), det * (a11 * b.Y - a21 * b.X));
         }
     }
 }

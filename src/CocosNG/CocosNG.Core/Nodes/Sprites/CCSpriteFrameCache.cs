@@ -453,7 +453,7 @@ namespace CocosNG.Core.Nodes.Sprites
             foreach (string key in m_pSpriteFrames.Keys)
             {
                 CCSpriteFrame frame = m_pSpriteFrames[key];
-                if (frame != null && (frame.Texture.Name == texture.Name))
+                if (frame != null && (frame.Texture.TextureId == texture.TextureId))
                 {
                     keysToRemove.Add(key);
                 }

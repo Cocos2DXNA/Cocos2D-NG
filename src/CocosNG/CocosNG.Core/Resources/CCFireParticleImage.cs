@@ -67,7 +67,7 @@ namespace CocosNG.Core.Resources
             {
                 if (_defaultTexture == null)
                 {
-                    _defaultTexture = CCTextureCache.SharedTextureCache.AddImage(_firePngData, "__firePngData", SurfaceFormat.Color);
+                    _defaultTexture = CCTextureCache.SharedTextureCache.AddImage(_firePngData, "__firePngData", CCTexturePixelFormat.Color);
                 }
 
                 return _defaultTexture;

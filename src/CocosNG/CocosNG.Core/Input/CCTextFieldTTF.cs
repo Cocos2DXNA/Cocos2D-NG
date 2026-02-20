@@ -1,10 +1,30 @@
 ﻿using System;
-using Microsoft.Xna.Framework.GamerServices;
+using System.Threading.Tasks;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Input;
 using CocosNG.Core;
 using CocosNG.Core.UI;
 
 namespace CocosNG.Core.Input
 {
+    internal static class Guide
+    {
+        public static bool IsVisible => KeyboardInput.IsVisible;
+
+        public static IAsyncResult BeginShowKeyboardInput(PlayerIndex player, string title, string description, string defaultText, AsyncCallback callback, object state)
+        {
+            var task = KeyboardInput.Show(title, description, defaultText, false);
+            if (callback != null)
+                task.ContinueWith(t => callback(t));
+            return task;
+        }
+
+        public static string EndShowKeyboardInput(IAsyncResult result)
+        {
+            return ((Task<string>)result).GetAwaiter().GetResult();
+        }
+    }
+
     public class CCTextFieldTTF : CCLabelTTF, ICCTargetedTouchDelegate
     {
         private IAsyncResult m_pGuideShowHandle;

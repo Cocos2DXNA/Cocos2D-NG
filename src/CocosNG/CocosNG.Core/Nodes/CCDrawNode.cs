@@ -134,4 +134,5 @@ namespace CocosNG.Core.Nodes
             DrawSegment(from, to, radius, color);
             return this;
         }
+    }
 }

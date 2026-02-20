@@ -187,7 +187,7 @@ namespace CocosNG.Core.Nodes.Sprites
             var pSprite = (CCSprite) child;
 
             // check CCSprite is using the same texture id
-            Debug.Assert(pSprite.Texture.Name == m_pobTextureAtlas.Texture.Name, "CCSprite is not using the same texture id");
+            Debug.Assert(pSprite.Texture.TextureId == m_pobTextureAtlas.Texture.TextureId, "CCSprite is not using the same texture id");
 
             base.AddChild(child, zOrder, tag);
 
