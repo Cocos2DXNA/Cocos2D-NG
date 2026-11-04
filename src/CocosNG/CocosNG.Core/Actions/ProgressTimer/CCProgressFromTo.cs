@@ -1,5 +1,5 @@
 using CocosNG.Core.Actions.Interval;
-namespace CocosNG.Core.Actions.ProgrewsTimer
+namespace CocosNG.Core.Actions.ProgressTimer
 {
     public class CCProgressFromTo : CCActionInterval
     {

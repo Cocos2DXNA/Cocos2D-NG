@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using CocosNG.Core;
 
 namespace CocosNG.Core.UI
@@ -106,7 +106,7 @@ namespace CocosNG.Core.UI
             return this;
         }
 
-        public override void Activate()
+        public override CCMenuItem Activate()
         {
             if (m_bIsEnabled)
             {
@@ -114,9 +114,10 @@ namespace CocosNG.Core.UI
                 Scale = m_fOriginalScale;
                 base.Activate();
             }
+            return this;
         }
 
-        public override void Selected()
+        public override CCMenuItem Selected()
         {
             // subclass to change the default action
             if (m_bIsEnabled)
@@ -137,9 +138,10 @@ namespace CocosNG.Core.UI
                 zoomAction.Tag = unchecked((int) kZoomActionTag);
                 RunAction(zoomAction);
             }
+            return this;
         }
 
-        public override void Unselected()
+        public override CCMenuItem Unselected()
         {
             // subclass to change the default action
             if (m_bIsEnabled)
@@ -150,6 +152,7 @@ namespace CocosNG.Core.UI
                 zoomAction.Tag = unchecked((int) kZoomActionTag);
                 RunAction(zoomAction);
             }
+            return this;
         }
     }
 }

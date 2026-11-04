@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using CocosNG.Core;
 
@@ -132,7 +132,7 @@ namespace CocosNG.Core.UI
             get { return m_pSubItems[m_uSelectedIndex]; }
         }
 
-        public override void Activate()
+        public override CCMenuItem Activate()
         {
             // update index
             if (m_bIsEnabled)
@@ -141,6 +141,7 @@ namespace CocosNG.Core.UI
                 SelectedIndex = newIndex;
             }
             base.Activate();
+            return this;
         }
 
         /// <summary>
@@ -161,7 +162,7 @@ namespace CocosNG.Core.UI
             return this;
         }
 
-        public override void Selected()
+        public override CCMenuItem Selected()
         {
             base.Selected();
             m_pSubItems[m_uSelectedIndex].Selected();
@@ -181,9 +182,10 @@ namespace CocosNG.Core.UI
                 zoomAction.Tag = unchecked((int)kZoomActionTag);
                 m_pSubItems[m_uSelectedIndex].RunAction(zoomAction);
             }
+            return this;
         }
 
-        public override void Unselected()
+        public override CCMenuItem Unselected()
         {
             base.Unselected();
             m_pSubItems[m_uSelectedIndex].Unselected();
@@ -194,6 +196,7 @@ namespace CocosNG.Core.UI
                 zoomAction.Tag = unchecked((int)kZoomActionTag);
                 m_pSubItems[m_uSelectedIndex].RunAction(zoomAction);
             }
+            return this;
         }
     }
 }

@@ -1,6 +1,6 @@
-
+﻿
 using System;
-using System.Numerics;
+using Microsoft.Xna.Framework;
 
 namespace CocosNG.Core
 {
@@ -33,7 +33,7 @@ namespace CocosNG.Core
         protected float m_fUpX;
         protected float m_fUpY;
         protected float m_fUpZ;
-        private Matrix4x4 m_lookupMatrix;
+        private Matrix m_lookupMatrix;
 
         public CCCamera()
         {
@@ -73,7 +73,7 @@ namespace CocosNG.Core
             m_fUpY = 1.0f;
             m_fUpZ = 0.0f;
 
-            m_lookupMatrix = Matrix4x4.Identity;
+            m_lookupMatrix = Matrix.Identity;
 
             m_bDirty = false;
         }
@@ -85,7 +85,7 @@ namespace CocosNG.Core
         {
             if (m_bDirty)
             {
-                m_lookupMatrix = Matrix4x4.CreateLookAt(new Vector3(m_fEyeX, m_fEyeY, m_fEyeZ),
+                m_lookupMatrix = Matrix.CreateLookAt(new Vector3(m_fEyeX, m_fEyeY, m_fEyeZ),
                                                      new Vector3(m_fCenterX, m_fCenterY, m_fCenterZ),
                                                      new Vector3(m_fUpX, m_fUpY, m_fUpZ));
                 m_bDirty = false;

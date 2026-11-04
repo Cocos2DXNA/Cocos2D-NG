@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -61,7 +61,7 @@ namespace CocosNG.Core
 
         public static Task DelayAsync(this CCScheduler scheduler, float delaySeconds, CancellationToken cancellationToken = default)
         {
-            return ScheduleOnceAsync(scheduler, null, delaySeconds, cancellationToken);
+            return ScheduleOnceAsync(scheduler, (Action?)null, delaySeconds, cancellationToken);
         }
 
         public static Task ScheduleOnceAsync(this CCScheduler scheduler, Action action, float delaySeconds = 0f, CancellationToken cancellationToken = default)
@@ -103,7 +103,8 @@ namespace CocosNG.Core
 
             var tcs = new TaskCompletionSource<bool>();
             var target = new SchedulerTaskTarget(scheduler, tcs, null, cancellationToken);
-            Action<float> selector = dt =>
+            Action<float>? selector = null;
+            selector = dt =>
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
@@ -158,7 +159,9 @@ namespace CocosNG.Core
             var target = new SchedulerTaskTarget(scheduler, tcs, null, cancellationToken);
             var elapsed = 0f;
 
-            Action<float> selector = dt =>
+            Action<float>? selector = null;
+
+            selector = dt =>
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
@@ -213,7 +216,9 @@ namespace CocosNG.Core
             var tcs = new TaskCompletionSource<bool>();
             var target = new SchedulerTaskTarget(scheduler, tcs, null, cancellationToken);
 
-            Action<float> selector = dt =>
+            Action<float>? selector = null;
+
+            selector = dt =>
             {
                 if (cancellationToken.IsCancellationRequested)
                 {
@@ -257,7 +262,9 @@ namespace CocosNG.Core
             var tcs = new TaskCompletionSource<bool>();
             var target = new SchedulerTaskTarget(scheduler, tcs, null, cancellationToken);
 
-            Action<float> selector = dt =>
+            Action<float>? selector = null;
+
+            selector = dt =>
             {
                 if (cancellationToken.IsCancellationRequested)
                 {

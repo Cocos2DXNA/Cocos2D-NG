@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using CocosNG.Core.Primitives;
 
 namespace CocosNG.Core.Input
@@ -52,6 +52,18 @@ namespace CocosNG.Core.Input
         public CCPoint PreviousLocationInView
         {
             get { return m_prevPoint; }
+        }
+
+        /// <summary>
+        /// Touch location in GL coordinates as a System.Numerics vector, for gesture math.
+        /// </summary>
+        public System.Numerics.Vector2 Position
+        {
+            get
+            {
+                CCPoint p = Location;
+                return new System.Numerics.Vector2(p.X, p.Y);
+            }
         }
 
         /// <summary>
