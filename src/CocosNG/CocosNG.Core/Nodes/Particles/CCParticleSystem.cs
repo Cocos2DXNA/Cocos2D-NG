@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using CocosNG.Core.Content;
 using CocosNG.Core;
 
 namespace CocosNG.Core.Nodes.Particles
@@ -688,10 +689,10 @@ namespace CocosNG.Core.Nodes.Particles
 
                                 try
                                 {
-                                    CCTexture2D texx = CCTextureCache.SharedTextureCache.AddImage(imageBytes, textureName, SurfaceFormat.Color);
+                                    CCTexture2D texx = CCTextureCache.SharedTextureCache.AddImage(imageBytes, textureName, CCTexturePixelFormat.Color);
                                     if (texx == null && textureName.IndexOf('.') > -1)
                                     {
-                                        texx = CCTextureCache.SharedTextureCache.AddImage(imageBytes, textureName.Substring(textureName.LastIndexOf('.')), SurfaceFormat.Color);
+                                        texx = CCTextureCache.SharedTextureCache.AddImage(imageBytes, textureName.Substring(textureName.LastIndexOf('.')), CCTexturePixelFormat.Color);
                                     }
                                     if (texx != null)
                                     {

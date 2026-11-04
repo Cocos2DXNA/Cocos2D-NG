@@ -162,7 +162,7 @@ namespace CocosNG.Core.Nodes.Particles
             Debug.Assert(child != null, "Argument must be non-null");
             Debug.Assert(child is CCParticleSystem, "CCParticleBatchNode only supports CCQuadParticleSystems as children");
             var pChild = (CCParticleSystem) child;
-            Debug.Assert(pChild.Texture.Name == TextureAtlas.Texture.Name, "CCParticleSystem is not using the same texture id");
+            Debug.Assert(pChild.Texture.TextureId == TextureAtlas.Texture.TextureId, "CCParticleSystem is not using the same texture id");
 
             // If this is the 1st children, then copy blending function
             if (m_pChildren.Count == 0)

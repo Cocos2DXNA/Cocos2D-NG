@@ -9,36 +9,136 @@ namespace Box2DNG
         private readonly List<Fixture> _fixtures = new List<Fixture>();
 
         public BodyDef Definition { get; }
-        public Transform Transform { get; private set; }
-        public BodyType Type { get; private set; }
-        public Vec2 LinearVelocity { get; set; }
-        public float AngularVelocity { get; set; }
-        public float LinearDamping { get; set; }
-        public float AngularDamping { get; set; }
-        public float GravityScale { get; set; }
-        public bool FixedRotation { get; }
-        public MotionLocks MotionLocks { get; }
-        public float Mass { get; private set; }
-        public float Inertia { get; private set; }
-        public float InverseMass { get; private set; }
-        public float InverseInertia { get; private set; }
+        
+        public Transform Transform
+        {
+            get => new Transform(_world._bodyPositions[Id], _world._bodyRotations[Id]);
+            private set
+            {
+                // SetTransform should be used, but for internal setting:
+                _world._bodyPositions[Id] = value.P;
+                _world._bodyRotations[Id] = value.Q;
+            }
+        }
+
+        public Rot Rotation => _world._bodyRotations[Id];
+
+
+        
+        public BodyType Type 
+        { 
+            get => _world._bodyTypes[Id];
+            private set => _world._bodyTypes[Id] = value;
+        }
+
+        public Vec2 Position
+        {
+            get => _world._bodyPositions[Id];
+            set => _world._bodyPositions[Id] = value;
+        }
+
+        public Vec2 LinearVelocity
+        {
+            get => _world._bodyLinearVelocities[Id];
+            set => _world._bodyLinearVelocities[Id] = value;
+        }
+
+        public float AngularVelocity
+        {
+            get => _world._bodyAngularVelocities[Id];
+            set => _world._bodyAngularVelocities[Id] = value;
+        }
+        public float LinearDamping 
+        { 
+            get => _world._bodyLinearDampings[Id];
+            set => _world._bodyLinearDampings[Id] = value;
+        }
+        public float AngularDamping 
+        { 
+            get => _world._bodyAngularDampings[Id];
+            set => _world._bodyAngularDampings[Id] = value;
+        }
+        public float GravityScale 
+        { 
+            get => _world._bodyGravityScales[Id];
+            set => _world._bodyGravityScales[Id] = value;
+        }
+        public bool FixedRotation 
+        { 
+            get => _world._bodyFixedRotations[Id];
+            private set => _world._bodyFixedRotations[Id] = value;
+        }
+        public MotionLocks MotionLocks { get; } // Leaving this for now as it seems rare/complex?
+        
+        public float Mass 
+        { 
+            get => _world._bodyMasses[Id];
+            private set => _world._bodyMasses[Id] = value;
+        }
+        public float Inertia 
+        { 
+            get => _world._bodyInertias[Id];
+            private set => _world._bodyInertias[Id] = value;
+        }
+        public float InverseMass 
+        { 
+            get => _world._bodyInverseMasses[Id];
+            private set => _world._bodyInverseMasses[Id] = value;
+        }
+        public float InverseInertia 
+        { 
+            get => _world._bodyInverseInertias[Id];
+            private set => _world._bodyInverseInertias[Id] = value;
+        }
         public int Id { get; internal set; } = -1;
         public Sweep Sweep { get; internal set; }
-        public Vec2 LocalCenter { get; private set; }
-        public Vec2 Force { get; private set; }
-        public float Torque { get; private set; }
-        public bool Awake { get; private set; }
-        public bool AllowSleep { get; private set; }
-        public float SleepTime { get; internal set; }
-        internal SolverSetType SolverSetType { get; set; } = SolverSetType.Awake;
+        public Vec2 LocalCenter 
+        { 
+            get => _world._bodyLocalCenters[Id];
+            internal set => _world._bodyLocalCenters[Id] = value;
+        }
+        public Vec2 Force 
+        { 
+            get => _world._bodyForces[Id];
+            private set => _world._bodyForces[Id] = value;
+        }
+        public float Torque 
+        { 
+            get => _world._bodyTorques[Id];
+            private set => _world._bodyTorques[Id] = value;
+        }
+        public bool Awake 
+        { 
+            get => _world._bodyAwakes[Id];
+            private set => _world._bodyAwakes[Id] = value;
+        }
+        public bool AllowSleep 
+        { 
+            get => _world._bodyAllowSleeps[Id];
+            private set => _world._bodyAllowSleeps[Id] = value;
+        }
+        public float SleepTime 
+        { 
+            get => _world._bodySleepTimes[Id];
+            internal set => _world._bodySleepTimes[Id] = value;
+        }
+        internal SolverSetType SolverSetType 
+        { 
+            get => _world._bodySolverSetTypes[Id];
+            set => _world._bodySolverSetTypes[Id] = value;
+        }
         internal ContactEdge? ContactList { get; set; }
         internal int ContactEdgeCount { get; set; }
 
-        internal Body(World world, BodyDef def)
+        internal Body(World world, BodyDef def, int id)
         {
             _world = world;
+            Id = id; // Must be set before accessing properties
             Definition = def ?? throw new ArgumentNullException(nameof(def));
+            
+            // Initialize arrays via properties
             Transform = new Transform(def.Position, def.Rotation);
+            
             Type = def.Type;
             LinearVelocity = def.LinearVelocity;
             AngularVelocity = def.AngularVelocity;
@@ -53,7 +153,7 @@ namespace Box2DNG
 
             ResetMassData();
             LocalCenter = Vec2.Zero;
-            Vec2 worldCenter = Transform.P;
+            Vec2 worldCenter = Transform.P; // Uses array access
             Sweep = new Sweep(LocalCenter, worldCenter, worldCenter, def.Rotation.Angle, def.Rotation.Angle, 0f);
         }
 
@@ -108,7 +208,9 @@ namespace Box2DNG
                 return;
             }
 
+            BodyType previousType = Type;
             Type = type;
+            _world.NotifyBodyTypeChanged(this, previousType);
 
             if (Type == BodyType.Static)
             {

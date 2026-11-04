@@ -133,14 +133,6 @@ namespace Box2DNG
                     for (int i = 0; i < joints.Count; ++i)
                     {
                         JointHandle handle = joints[i];
-                        if (_world.TryGetJointSolverSetType(handle, out SolverSetType setType) && setType != SolverSetType.Awake)
-                        {
-                            continue;
-                        }
-                        if (_world.TryGetJointSolverSetId(handle, out int setId) && setId != 0)
-                        {
-                            continue;
-                        }
                         InitJointVelocityConstraints(handle, timeStep);
                     }
                 }
@@ -162,14 +154,6 @@ namespace Box2DNG
                         for (int i = 0; i < joints.Count; ++i)
                         {
                             JointHandle handle = joints[i];
-                            if (_world.TryGetJointSolverSetType(handle, out SolverSetType setType) && setType != SolverSetType.Awake)
-                            {
-                                continue;
-                            }
-                            if (_world.TryGetJointSolverSetId(handle, out int setId) && setId != 0)
-                            {
-                                continue;
-                            }
                             SolveJointVelocityConstraints(handle, timeStep);
                         }
                     }
@@ -265,14 +249,6 @@ namespace Box2DNG
                         for (int i = 0; i < joints.Count; ++i)
                         {
                             JointHandle handle = joints[i];
-                            if (_world.TryGetJointSolverSetType(handle, out SolverSetType setType) && setType != SolverSetType.Awake)
-                            {
-                                continue;
-                            }
-                            if (_world.TryGetJointSolverSetId(handle, out int setId) && setId != 0)
-                            {
-                                continue;
-                            }
                             SolveJointPositionConstraints(handle);
                         }
                     }
@@ -324,34 +300,34 @@ namespace Box2DNG
                 switch (handle.Type)
                 {
                     case JointType.Distance:
-                        _world._distanceJoints[index].InitVelocityConstraints(timeStep);
+                        _world.InitDistanceJointVelocityConstraints(index, timeStep);
                         break;
                     case JointType.Revolute:
-                        _world._revoluteJoints[index].InitVelocityConstraints(timeStep);
+                        _world.InitRevoluteJointVelocityConstraints(index, timeStep);
                         break;
                     case JointType.Prismatic:
-                        _world._prismaticJoints[index].InitVelocityConstraints(timeStep);
+                        _world.InitPrismaticJointVelocityConstraints(index, timeStep);
                         break;
                     case JointType.Wheel:
-                        _world._wheelJoints[index].InitVelocityConstraints(timeStep);
+                        _world.InitWheelJointVelocityConstraints(index, timeStep);
                         break;
                     case JointType.Pulley:
-                        _world._pulleyJoints[index].InitVelocityConstraints(timeStep);
+                        _world.InitPulleyJointVelocityConstraints(index, timeStep);
                         break;
                     case JointType.Weld:
-                        _world._weldJoints[index].InitVelocityConstraints(timeStep);
+                        _world.InitWeldJointVelocityConstraints(index, timeStep);
                         break;
                     case JointType.Motor:
-                        _world._motorJoints[index].InitVelocityConstraints(timeStep);
+                        _world.InitMotorJointVelocityConstraints(index, timeStep);
                         break;
                     case JointType.Gear:
-                        _world._gearJoints[index].InitVelocityConstraints(timeStep);
+                        _world.InitGearJointVelocityConstraints(index, timeStep);
                         break;
                     case JointType.Rope:
-                        _world._ropeJoints[index].InitVelocityConstraints(timeStep);
+                        _world.InitRopeJointVelocityConstraints(index, timeStep);
                         break;
                     case JointType.Friction:
-                        _world._frictionJoints[index].InitVelocityConstraints(timeStep);
+                        _world.InitFrictionJointVelocityConstraints(index, timeStep);
                         break;
                 }
             }
@@ -366,34 +342,34 @@ namespace Box2DNG
                 switch (handle.Type)
                 {
                     case JointType.Distance:
-                        _world._distanceJoints[index].SolveVelocityConstraints();
+                        _world.SolveDistanceJointVelocityConstraints(index);
                         break;
                     case JointType.Revolute:
-                        _world._revoluteJoints[index].SolveVelocityConstraints(timeStep);
+                        _world.SolveRevoluteJointVelocityConstraints(index, timeStep);
                         break;
                     case JointType.Prismatic:
-                        _world._prismaticJoints[index].SolveVelocityConstraints(timeStep);
+                        _world.SolvePrismaticJointVelocityConstraints(index, timeStep);
                         break;
                     case JointType.Wheel:
-                        _world._wheelJoints[index].SolveVelocityConstraints(timeStep);
+                        _world.SolveWheelJointVelocityConstraints(index, timeStep);
                         break;
                     case JointType.Pulley:
-                        _world._pulleyJoints[index].SolveVelocityConstraints();
+                        _world.SolvePulleyJointVelocityConstraints(index);
                         break;
                     case JointType.Weld:
-                        _world._weldJoints[index].SolveVelocityConstraints(timeStep);
+                        _world.SolveWeldJointVelocityConstraints(index, timeStep);
                         break;
                     case JointType.Motor:
-                        _world._motorJoints[index].SolveVelocityConstraints(timeStep);
+                        _world.SolveMotorJointVelocityConstraints(index, timeStep);
                         break;
                     case JointType.Gear:
-                        _world._gearJoints[index].SolveVelocityConstraints(timeStep);
+                        _world.SolveGearJointVelocityConstraints(index, timeStep);
                         break;
                     case JointType.Rope:
-                        _world._ropeJoints[index].SolveVelocityConstraints(timeStep);
+                        _world.SolveRopeJointVelocityConstraints(index, timeStep);
                         break;
                     case JointType.Friction:
-                        _world._frictionJoints[index].SolveVelocityConstraints(timeStep);
+                        _world.SolveFrictionJointVelocityConstraints(index, timeStep);
                         break;
                 }
             }
@@ -408,34 +384,34 @@ namespace Box2DNG
                 switch (handle.Type)
                 {
                     case JointType.Distance:
-                        _world._distanceJoints[index].SolvePositionConstraints();
+                        _world.SolveDistanceJointPositionConstraints(index);
                         break;
                     case JointType.Revolute:
-                        _world._revoluteJoints[index].SolvePositionConstraints();
+                        _world.SolveRevoluteJointPositionConstraints(index);
                         break;
                     case JointType.Prismatic:
-                        _world._prismaticJoints[index].SolvePositionConstraints();
+                        _world.SolvePrismaticJointPositionConstraints(index);
                         break;
                     case JointType.Wheel:
-                        _world._wheelJoints[index].SolvePositionConstraints();
+                        _world.SolveWheelJointPositionConstraints(index);
                         break;
                     case JointType.Pulley:
-                        _world._pulleyJoints[index].SolvePositionConstraints();
+                        _world.SolvePulleyJointPositionConstraints(index);
                         break;
                     case JointType.Weld:
-                        _world._weldJoints[index].SolvePositionConstraints();
+                        _world.SolveWeldJointPositionConstraints(index);
                         break;
                     case JointType.Motor:
-                        _world._motorJoints[index].SolvePositionConstraints();
+                        _world.SolveMotorJointPositionConstraints(index);
                         break;
                     case JointType.Gear:
-                        _world._gearJoints[index].SolvePositionConstraints();
+                        _world.SolveGearJointPositionConstraints(index);
                         break;
                     case JointType.Rope:
-                        _world._ropeJoints[index].SolvePositionConstraints();
+                        _world.SolveRopeJointPositionConstraints(index);
                         break;
                     case JointType.Friction:
-                        _world._frictionJoints[index].SolvePositionConstraints();
+                        _world.SolveFrictionJointPositionConstraints(index);
                         break;
                 }
             }

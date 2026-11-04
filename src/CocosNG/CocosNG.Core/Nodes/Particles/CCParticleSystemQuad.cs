@@ -103,7 +103,7 @@ namespace CocosNG.Core.Nodes.Particles
         public void SetTextureWithRect(CCTexture2D texture, CCRect rect)
         {
             // Only update the texture if is different from the current one
-            if (m_pTexture == null || texture.Name != m_pTexture.Name)
+            if (m_pTexture == null || texture.TextureId != m_pTexture.TextureId)
             {
                 base.Texture = texture;
             }
@@ -138,7 +138,7 @@ namespace CocosNG.Core.Nodes.Particles
                          "QuadParticle only supports SpriteFrames with no offsets");
 
             // update texture before updating texture rect
-            if (m_pTexture != null || spriteFrame.Texture.Name != m_pTexture.Name)
+            if (m_pTexture == null || spriteFrame.Texture.TextureId != m_pTexture.TextureId)
             {
                 Texture = spriteFrame.Texture;
             }

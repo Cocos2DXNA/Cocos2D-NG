@@ -65,14 +65,14 @@ namespace Box2DNG
                     Vec2 normal = worldManifold.Normal;
                     Vec2 tangent = new Vec2(-normal.Y, normal.X);
 
-                    ContactConstraint constraint = new ContactConstraint(contact, bodyA, bodyB, normal, tangent, contact.Manifold.PointCount)
+                    ContactConstraint constraint = new ContactConstraint(contact, bodyA.Id, bodyB.Id, normal, tangent, contact.Manifold.PointCount)
                     {
                         Friction = _world.MixFriction(fixtureA, fixtureB),
                         Restitution = _world.MixRestitution(fixtureA, fixtureB),
-                        InvMassA = bodyA.InverseMass,
-                        InvIA = bodyA.InverseInertia,
-                        InvMassB = bodyB.InverseMass,
-                        InvIB = bodyB.InverseInertia
+                        InvMassA = _world._bodyInverseMasses[bodyA.Id],
+                        InvIA = _world._bodyInverseInertias[bodyA.Id],
+                        InvMassB = _world._bodyInverseMasses[bodyB.Id],
+                        InvIB = _world._bodyInverseInertias[bodyB.Id]
                     };
 
                     Vec2 centerA = bodyA.GetWorldCenter();
@@ -241,14 +241,14 @@ namespace Box2DNG
                         Vec2 normal = worldManifold.Normal;
                         Vec2 tangent = new Vec2(-normal.Y, normal.X);
 
-                        ContactConstraint constraint = new ContactConstraint(contact, bodyA, bodyB, normal, tangent, contact.Manifold.PointCount)
+                        ContactConstraint constraint = new ContactConstraint(contact, bodyA.Id, bodyB.Id, normal, tangent, contact.Manifold.PointCount)
                         {
                             Friction = _world.MixFriction(fixtureA, fixtureB),
                             Restitution = _world.MixRestitution(fixtureA, fixtureB),
-                            InvMassA = bodyA.InverseMass,
-                            InvIA = bodyA.InverseInertia,
-                            InvMassB = bodyB.InverseMass,
-                            InvIB = bodyB.InverseInertia
+                            InvMassA = _world._bodyInverseMasses[bodyA.Id],
+                            InvIA = _world._bodyInverseInertias[bodyA.Id],
+                            InvMassB = _world._bodyInverseMasses[bodyB.Id],
+                            InvIB = _world._bodyInverseInertias[bodyB.Id]
                         };
 
                         Vec2 centerA = bodyA.GetWorldCenter();
@@ -390,13 +390,13 @@ namespace Box2DNG
                 for (int i = 0; i < _constraints.Count; ++i)
                 {
                     ContactConstraint constraint = _constraints[i];
-                    Body bodyA = constraint.BodyA;
-                    Body bodyB = constraint.BodyB;
+                    int indexA = constraint.IndexA;
+                    int indexB = constraint.IndexB;
 
-                    Vec2 vA = bodyA.LinearVelocity;
-                    float wA = bodyA.AngularVelocity;
-                    Vec2 vB = bodyB.LinearVelocity;
-                    float wB = bodyB.AngularVelocity;
+                    Vec2 vA = _world._bodyLinearVelocities[indexA];
+                    float wA = _world._bodyAngularVelocities[indexA];
+                    Vec2 vB = _world._bodyLinearVelocities[indexB];
+                    float wB = _world._bodyAngularVelocities[indexB];
 
                     float mA = constraint.InvMassA;
                     float iA = constraint.InvIA;
@@ -417,10 +417,10 @@ namespace Box2DNG
                         constraint.Points[p] = cp;
                     }
 
-                    bodyA.LinearVelocity = vA;
-                    bodyA.AngularVelocity = wA;
-                    bodyB.LinearVelocity = vB;
-                    bodyB.AngularVelocity = wB;
+                    _world._bodyLinearVelocities[indexA] = vA;
+                    _world._bodyAngularVelocities[indexA] = wA;
+                    _world._bodyLinearVelocities[indexB] = vB;
+                    _world._bodyAngularVelocities[indexB] = wB;
                 }
             }
 
@@ -580,13 +580,13 @@ namespace Box2DNG
             private void SolveVelocityScalar(int index, bool useBias)
             {
                 ContactConstraint constraint = _constraints[index];
-                Body bodyA = constraint.BodyA;
-                Body bodyB = constraint.BodyB;
+                int indexA = constraint.IndexA;
+                int indexB = constraint.IndexB;
 
-                Vec2 vA = bodyA.LinearVelocity;
-                float wA = bodyA.AngularVelocity;
-                Vec2 vB = bodyB.LinearVelocity;
-                float wB = bodyB.AngularVelocity;
+                Vec2 vA = _world._bodyLinearVelocities[indexA];
+                float wA = _world._bodyAngularVelocities[indexA];
+                Vec2 vB = _world._bodyLinearVelocities[indexB];
+                float wB = _world._bodyAngularVelocities[indexB];
 
                 float mA = constraint.InvMassA;
                 float iA = constraint.InvIA;
@@ -640,10 +640,10 @@ namespace Box2DNG
                     constraint.Points[p] = cp;
                 }
 
-                bodyA.LinearVelocity = vA;
-                bodyA.AngularVelocity = wA;
-                bodyB.LinearVelocity = vB;
-                bodyB.AngularVelocity = wB;
+                _world._bodyLinearVelocities[indexA] = vA;
+                _world._bodyAngularVelocities[indexA] = wA;
+                _world._bodyLinearVelocities[indexB] = vB;
+                _world._bodyAngularVelocities[indexB] = wB;
 
                 _constraints[index] = constraint;
             }
@@ -683,15 +683,15 @@ namespace Box2DNG
                     ContactConstraint constraint = _constraints[indices[lane]];
                     ContactConstraintPoint cp = constraint.Points[0];
 
-                    Body bodyA = constraint.BodyA;
-                    Body bodyB = constraint.BodyB;
+                    int indexA = constraint.IndexA;
+                    int indexB = constraint.IndexB;
 
-                    vAx[lane] = bodyA.LinearVelocity.X;
-                    vAy[lane] = bodyA.LinearVelocity.Y;
-                    wA[lane] = bodyA.AngularVelocity;
-                    vBx[lane] = bodyB.LinearVelocity.X;
-                    vBy[lane] = bodyB.LinearVelocity.Y;
-                    wB[lane] = bodyB.AngularVelocity;
+                    vAx[lane] = _world._bodyLinearVelocities[indexA].X;
+                    vAy[lane] = _world._bodyLinearVelocities[indexA].Y;
+                    wA[lane] = _world._bodyAngularVelocities[indexA];
+                    vBx[lane] = _world._bodyLinearVelocities[indexB].X;
+                    vBy[lane] = _world._bodyLinearVelocities[indexB].Y;
+                    wB[lane] = _world._bodyAngularVelocities[indexB];
 
                     invMassA[lane] = constraint.InvMassA;
                     invIA[lane] = constraint.InvIA;
@@ -809,12 +809,12 @@ namespace Box2DNG
                     ContactConstraint constraint = _constraints[idx];
                     ContactConstraintPoint cp = constraint.Points[0];
 
-                    Body bodyA = constraint.BodyA;
-                    Body bodyB = constraint.BodyB;
-                    bodyA.LinearVelocity = new Vec2(vAx[lane], vAy[lane]);
-                    bodyA.AngularVelocity = wA[lane];
-                    bodyB.LinearVelocity = new Vec2(vBx[lane], vBy[lane]);
-                    bodyB.AngularVelocity = wB[lane];
+                    int indexA = constraint.IndexA;
+                    int indexB = constraint.IndexB;
+                    _world._bodyLinearVelocities[indexA] = new Vec2(vAx[lane], vAy[lane]);
+                    _world._bodyAngularVelocities[indexA] = wA[lane];
+                    _world._bodyLinearVelocities[indexB] = new Vec2(vBx[lane], vBy[lane]);
+                    _world._bodyAngularVelocities[indexB] = wB[lane];
 
                     cp.NormalImpulse = normalImpulse[lane];
                     cp.TangentImpulse = tangentImpulse[lane];
@@ -871,15 +871,15 @@ namespace Box2DNG
                     ContactConstraint constraint = _constraints[indices[lane]];
                     ContactConstraintPoint cp1 = constraint.Points[0];
                     ContactConstraintPoint cp2 = constraint.Points[1];
-                    Body bodyA = constraint.BodyA;
-                    Body bodyB = constraint.BodyB;
+                    int indexA = constraint.IndexA;
+                    int indexB = constraint.IndexB;
 
-                    vAx[lane] = bodyA.LinearVelocity.X;
-                    vAy[lane] = bodyA.LinearVelocity.Y;
-                    wA[lane] = bodyA.AngularVelocity;
-                    vBx[lane] = bodyB.LinearVelocity.X;
-                    vBy[lane] = bodyB.LinearVelocity.Y;
-                    wB[lane] = bodyB.AngularVelocity;
+                    vAx[lane] = _world._bodyLinearVelocities[indexA].X;
+                    vAy[lane] = _world._bodyLinearVelocities[indexA].Y;
+                    wA[lane] = _world._bodyAngularVelocities[indexA];
+                    vBx[lane] = _world._bodyLinearVelocities[indexB].X;
+                    vBy[lane] = _world._bodyLinearVelocities[indexB].Y;
+                    wB[lane] = _world._bodyAngularVelocities[indexB];
 
                     invMassA[lane] = constraint.InvMassA;
                     invIA[lane] = constraint.InvIA;
@@ -1055,12 +1055,12 @@ namespace Box2DNG
                     ContactConstraintPoint cp1 = constraint.Points[0];
                     ContactConstraintPoint cp2 = constraint.Points[1];
 
-                    Body bodyA = constraint.BodyA;
-                    Body bodyB = constraint.BodyB;
-                    bodyA.LinearVelocity = new Vec2(vAx[lane], vAy[lane]);
-                    bodyA.AngularVelocity = wA[lane];
-                    bodyB.LinearVelocity = new Vec2(vBx[lane], vBy[lane]);
-                    bodyB.AngularVelocity = wB[lane];
+                    int indexA = constraint.IndexA;
+                    int indexB = constraint.IndexB;
+                    _world._bodyLinearVelocities[indexA] = new Vec2(vAx[lane], vAy[lane]);
+                    _world._bodyAngularVelocities[indexA] = wA[lane];
+                    _world._bodyLinearVelocities[indexB] = new Vec2(vBx[lane], vBy[lane]);
+                    _world._bodyAngularVelocities[indexB] = wB[lane];
 
                     cp1.NormalImpulse = nImp1[lane];
                     cp1.TangentImpulse = tImp1[lane];
@@ -1103,13 +1103,13 @@ namespace Box2DNG
                     return;
                 }
 
-                Body bodyA = constraint.BodyA;
-                Body bodyB = constraint.BodyB;
+                int indexA = constraint.IndexA;
+                int indexB = constraint.IndexB;
 
-                Vec2 vA = bodyA.LinearVelocity;
-                float wA = bodyA.AngularVelocity;
-                Vec2 vB = bodyB.LinearVelocity;
-                float wB = bodyB.AngularVelocity;
+                Vec2 vA = _world._bodyLinearVelocities[indexA];
+                float wA = _world._bodyAngularVelocities[indexA];
+                Vec2 vB = _world._bodyLinearVelocities[indexB];
+                float wB = _world._bodyAngularVelocities[indexB];
 
                 float mA = constraint.InvMassA;
                 float iA = constraint.InvIA;
@@ -1143,10 +1143,10 @@ namespace Box2DNG
                     constraint.Points[p] = cp;
                 }
 
-                bodyA.LinearVelocity = vA;
-                bodyA.AngularVelocity = wA;
-                bodyB.LinearVelocity = vB;
-                bodyB.AngularVelocity = wB;
+                _world._bodyLinearVelocities[indexA] = vA;
+                _world._bodyAngularVelocities[indexA] = wA;
+                _world._bodyLinearVelocities[indexB] = vB;
+                _world._bodyAngularVelocities[indexB] = wB;
 
                 _constraints[index] = constraint;
             }
@@ -1181,15 +1181,15 @@ namespace Box2DNG
                 {
                     ContactConstraint constraint = _constraints[indices[lane]];
                     ContactConstraintPoint cp = constraint.Points[0];
-                    Body bodyA = constraint.BodyA;
-                    Body bodyB = constraint.BodyB;
+                    int indexA = constraint.IndexA;
+                    int indexB = constraint.IndexB;
 
-                    vAx[lane] = bodyA.LinearVelocity.X;
-                    vAy[lane] = bodyA.LinearVelocity.Y;
-                    wA[lane] = bodyA.AngularVelocity;
-                    vBx[lane] = bodyB.LinearVelocity.X;
-                    vBy[lane] = bodyB.LinearVelocity.Y;
-                    wB[lane] = bodyB.AngularVelocity;
+                    vAx[lane] = _world._bodyLinearVelocities[indexA].X;
+                    vAy[lane] = _world._bodyLinearVelocities[indexA].Y;
+                    wA[lane] = _world._bodyAngularVelocities[indexA];
+                    vBx[lane] = _world._bodyLinearVelocities[indexB].X;
+                    vBy[lane] = _world._bodyLinearVelocities[indexB].Y;
+                    wB[lane] = _world._bodyAngularVelocities[indexB];
 
                     invMassA[lane] = constraint.InvMassA;
                     invIA[lane] = constraint.InvIA;
@@ -1283,12 +1283,12 @@ namespace Box2DNG
                     int idx = indices[lane];
                     ContactConstraint constraint = _constraints[idx];
                     ContactConstraintPoint cp = constraint.Points[0];
-                    Body bodyA = constraint.BodyA;
-                    Body bodyB = constraint.BodyB;
-                    bodyA.LinearVelocity = new Vec2(vAx[lane], vAy[lane]);
-                    bodyA.AngularVelocity = wA[lane];
-                    bodyB.LinearVelocity = new Vec2(vBx[lane], vBy[lane]);
-                    bodyB.AngularVelocity = wB[lane];
+                    int indexA = constraint.IndexA;
+                    int indexB = constraint.IndexB;
+                    _world._bodyLinearVelocities[indexA] = new Vec2(vAx[lane], vAy[lane]);
+                    _world._bodyAngularVelocities[indexA] = wA[lane];
+                    _world._bodyLinearVelocities[indexB] = new Vec2(vBx[lane], vBy[lane]);
+                    _world._bodyAngularVelocities[indexB] = wB[lane];
 
                     cp.NormalImpulse = normalImpulse[lane];
                     cp.TotalNormalImpulse = totalImpulse[lane];
@@ -1338,15 +1338,15 @@ namespace Box2DNG
                     ContactConstraint constraint = _constraints[indices[lane]];
                     ContactConstraintPoint cp1 = constraint.Points[0];
                     ContactConstraintPoint cp2 = constraint.Points[1];
-                    Body bodyA = constraint.BodyA;
-                    Body bodyB = constraint.BodyB;
+                    int indexA = constraint.IndexA;
+                    int indexB = constraint.IndexB;
 
-                    vAx[lane] = bodyA.LinearVelocity.X;
-                    vAy[lane] = bodyA.LinearVelocity.Y;
-                    wA[lane] = bodyA.AngularVelocity;
-                    vBx[lane] = bodyB.LinearVelocity.X;
-                    vBy[lane] = bodyB.LinearVelocity.Y;
-                    wB[lane] = bodyB.AngularVelocity;
+                    vAx[lane] = _world._bodyLinearVelocities[indexA].X;
+                    vAy[lane] = _world._bodyLinearVelocities[indexA].Y;
+                    wA[lane] = _world._bodyAngularVelocities[indexA];
+                    vBx[lane] = _world._bodyLinearVelocities[indexB].X;
+                    vBy[lane] = _world._bodyLinearVelocities[indexB].Y;
+                    wB[lane] = _world._bodyAngularVelocities[indexB];
 
                     invMassA[lane] = constraint.InvMassA;
                     invIA[lane] = constraint.InvIA;
@@ -1485,12 +1485,12 @@ namespace Box2DNG
                     ContactConstraint constraint = _constraints[idx];
                     ContactConstraintPoint cp1 = constraint.Points[0];
                     ContactConstraintPoint cp2 = constraint.Points[1];
-                    Body bodyA = constraint.BodyA;
-                    Body bodyB = constraint.BodyB;
-                    bodyA.LinearVelocity = new Vec2(vAx[lane], vAy[lane]);
-                    bodyA.AngularVelocity = wA[lane];
-                    bodyB.LinearVelocity = new Vec2(vBx[lane], vBy[lane]);
-                    bodyB.AngularVelocity = wB[lane];
+                    int indexA = constraint.IndexA;
+                    int indexB = constraint.IndexB;
+                    _world._bodyLinearVelocities[indexA] = new Vec2(vAx[lane], vAy[lane]);
+                    _world._bodyAngularVelocities[indexA] = wA[lane];
+                    _world._bodyLinearVelocities[indexB] = new Vec2(vBx[lane], vBy[lane]);
+                    _world._bodyAngularVelocities[indexB] = wB[lane];
 
                     cp1.NormalImpulse = nImp1[lane];
                     cp1.TotalNormalImpulse = totalImp1[lane];
@@ -1567,8 +1567,8 @@ namespace Box2DNG
             private struct ContactConstraint
             {
                 public Contact Contact;
-                public Body BodyA;
-                public Body BodyB;
+                public int IndexA;
+                public int IndexB;
                 public Vec2 Normal;
                 public Vec2 Tangent;
                 public int PointCount;
@@ -1583,11 +1583,11 @@ namespace Box2DNG
                 public float InvIB;
                 public ContactConstraintPoint[] Points;
 
-                public ContactConstraint(Contact contact, Body bodyA, Body bodyB, Vec2 normal, Vec2 tangent, int pointCount)
+                public ContactConstraint(Contact contact, int indexA, int indexB, Vec2 normal, Vec2 tangent, int pointCount)
                 {
                     Contact = contact;
-                    BodyA = bodyA;
-                    BodyB = bodyB;
+                    IndexA = indexA;
+                    IndexB = indexB;
                     Normal = normal;
                     Tangent = tangent;
                     PointCount = pointCount;

@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Configurations>Debug;Release;DebugWindows;DebugAndroid</Configurations>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CocosNG.Core\CocosNG.Core.csproj" />
+    <ProjectReference Include="..\..\XnaNG\XnaNG.Framework\XnaNG.Framework.csproj" />
+  </ItemGroup>
+
+</Project>

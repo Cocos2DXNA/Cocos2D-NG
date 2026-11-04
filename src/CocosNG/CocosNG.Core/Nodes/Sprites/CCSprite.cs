@@ -504,7 +504,7 @@ namespace CocosNG.Core.Nodes.Sprites
             set
             {
                 // If batchnode, then texture id should be the same
-                Debug.Assert(m_pobBatchNode == null || value.Name == m_pobBatchNode.Texture.Name,
+                Debug.Assert(m_pobBatchNode == null || value.TextureId == m_pobBatchNode.Texture.TextureId,
                              "CCSprite: Batched sprites should use the same texture as the batchnode");
 
                 if (m_pobBatchNode == null && m_pobTexture != value)
@@ -957,7 +957,7 @@ namespace CocosNG.Core.Nodes.Sprites
                 var sprite = child as CCSprite;
 
                 Debug.Assert(sprite != null, "CCSprite only supports CCSprites as children when using CCSpriteBatchNode");
-                Debug.Assert(sprite.Texture.Name == m_pobTextureAtlas.Texture.Name);
+                Debug.Assert(sprite.Texture.TextureId == m_pobTextureAtlas.Texture.TextureId);
 
                 m_pobBatchNode.AppendChild(sprite);
 
@@ -1106,7 +1106,7 @@ namespace CocosNG.Core.Nodes.Sprites
 
             return (
                        CCRect.Equal(ref r, ref m_obRect) &&
-                       pFrame.Texture.Name == m_pobTexture.Name &&
+                       pFrame.Texture.TextureId == m_pobTexture.TextureId &&
                        pFrame.Offset.Equals(m_obUnflippedOffsetPositionFromCenter)
                    );
         }
