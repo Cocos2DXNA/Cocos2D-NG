@@ -483,6 +483,20 @@ namespace CocosNG.Core
             ProcessMouse(Mouse.GetState());
         }
 
+        /// <summary>
+        /// True when the game's window has focus and the cursor is inside it. The mouse state is
+        /// global, so without this a click anywhere on the desktop became a touch in the game.
+        /// </summary>
+        private bool IsMouseOverActiveWindow(MouseState mouse)
+        {
+            if (!Game.IsActive)
+            {
+                return false;
+            }
+            var bounds = Game.Window.ClientBounds;
+            return mouse.X >= 0 && mouse.Y >= 0 && mouse.X < bounds.Width && mouse.Y < bounds.Height;
+        }
+
         private void ProcessMouse(MouseState mouse)
         {
             if (m_pDelegate != null)
@@ -497,7 +511,8 @@ namespace CocosNG.Core
                 _prevMouseState = _lastMouseState;
                 _lastMouseState = mouse;
 
-                if (_prevMouseState.LeftButton == ButtonState.Released && _lastMouseState.LeftButton == ButtonState.Pressed)
+                if (_prevMouseState.LeftButton == ButtonState.Released && _lastMouseState.LeftButton == ButtonState.Pressed
+                    && IsMouseOverActiveWindow(_lastMouseState))
                 {
 #if NETFX_CORE
                     pos = TransformPoint(_lastMouseState.X, _lastMouseState.Y);
