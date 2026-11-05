@@ -453,6 +453,74 @@ namespace CocosNG.Core.Content
             return true;
         }
 
+        /// <summary>
+        /// Splits text into the lines a label draws: words wrapped to <paramref name="width"/> (as
+        /// <paramref name="measure"/> sizes them), with a blank line between paragraphs (split at
+        /// '\n') but none after the last. That trailing blank line used to be drawn too, which
+        /// pushed centred and bottom-aligned text up by half a line and cut off the top line of
+        /// text that only just fitted.
+        /// </summary>
+        public static List<string> WrapLines(string text, float width, Func<string, float> measure)
+        {
+            var textList = new List<String>();
+
+            string[] lineList = text.Split('\n');
+
+            StringBuilder next = new StringBuilder();
+            string last = null;
+            for (int j = 0; j < lineList.Length; ++j)
+            {
+                string[] wordList = lineList[j].Split(' ');
+                for (int i = 0; i < wordList.Length; )
+                {
+                    // Run through the list of words to create a sentence that fits in the width
+                    while (i < wordList.Length)
+                    {
+                        if (measure(next.ToString()) > width)
+                        {
+                            i--;
+                            break;
+                        }
+                        last = next.ToString();
+                        if (next.Length > 0)
+                        {
+                            next.Append(' ');
+                        }
+                        next.Append(wordList[i]);
+                        i++;
+                    }
+                    if (i == wordList.Length || i == -1) // -1 means the default width was too small for the string.
+                    {
+                        string nstr = next.ToString();
+                        if (measure(nstr) > width)
+                        {
+                            // Last line could have bleed into the margin
+                            if(last != null && last.Length > 0)
+                                textList.Add(last); // Single word label has a null last which can cause problems
+                            textList.Add(wordList[wordList.Length - 1]); // last word bleeds
+                        }
+                        else if(nstr.Length > 0)
+                        {
+                            textList.Add(nstr);
+                        }
+                    }
+                    else if(last.Length > 0)
+                    {
+                        textList.Add(last);
+                    }
+                    last = null;
+                    next.Length = 0;
+                }
+
+                if (j < lineList.Length - 1)
+                {
+                    textList.Add(String.Empty);   // the blank line between paragraphs
+                }
+            }
+
+            return textList;
+        }
+
         public bool InitWithString(string text, string fontName, float fontSize)
         {
             return InitWithString(text, CCSize.Zero, CCTextAlignment.Center, CCVerticalTextAlignment.Top, fontName,
@@ -496,64 +564,7 @@ namespace CocosNG.Core.Content
                     dimensions.Height = temp.Y * scale;
                 }
 
-                var textList = new List<String>();
-                var nextText = new StringBuilder();
-
-                string[] lineList = text.Split('\n');
-
-                StringBuilder next = new StringBuilder();
-                string last = null;
-                for (int j = 0; j < lineList.Length; ++j)
-                {
-                    string[] wordList = lineList[j].Split(' ');
-                    for (int i = 0; i < wordList.Length; )
-                    {
-                        // Run through the list of words to create a sentence that fits in the dimensions.Width space
-                        while (i < wordList.Length)
-                        {
-                            if ((font.MeasureString(next.ToString()).X * scale) > dimensions.Width)
-                            {
-                                i--;
-                                break;
-                            }
-                            last = next.ToString();
-                            if (next.Length > 0)
-                            {
-                                next.Append(' ');
-                            }
-                            next.Append(wordList[i]);
-                            i++;
-                        }
-                        if (i == wordList.Length || i == -1) // -1 means the default width was too small for the string.
-                        {
-                            string nstr = next.ToString();
-                            if ((font.MeasureString(nstr).X * scale) > dimensions.Width)
-                            {
-                                // Last line could have bleed into the margin
-                                if(last != null && last.Length > 0)
-                                    textList.Add(last); // Single word label has a null last which can cause problems
-                                textList.Add(wordList[wordList.Length - 1]); // last word bleeds
-                            }
-                            else if(nstr.Length > 0)
-                            {
-                                textList.Add(nstr);
-                            }
-                        }
-                        else if(last.Length > 0)
-                        {
-                            textList.Add(last);
-                        }
-                        last = null;
-                        next.Length = 0;
-                    }
-
-                    textList.Add(nextText.ToString());
-#if XBOX || XBOX360
-                    nextText.Length = 0;
-#else
-                    nextText.Clear();
-#endif
-                }
+                List<string> textList = WrapLines(text, dimensions.Width, str => font.MeasureString(str).X * scale);
 
                 if (textList.Count == 0 && text.Length > 0)
                 {
