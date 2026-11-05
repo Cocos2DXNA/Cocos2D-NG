@@ -86,11 +86,6 @@ namespace CocosNG.Core.Actions
 
         #endregion
 
-        ~CCActionManager()
-        {
-            RemoveAllActions();
-        }
-
         protected void DeleteHashElement(HashElement element)
         {
             element.Actions.Clear();
@@ -205,7 +200,8 @@ namespace CocosNG.Core.Actions
             int count = m_pTargets.Keys.Count;
             if (m_pTmpKeysArray.Length < count)
             {
-                m_pTmpKeysArray = new CCNode[m_pTmpKeysArray.Length * 2];
+                // Grow enough for every target (doubling once could still be too small).
+                m_pTmpKeysArray = new CCNode[Math.Max(count, m_pTmpKeysArray.Length * 2)];
             }
 
             m_pTargets.Keys.CopyTo(m_pTmpKeysArray, 0);

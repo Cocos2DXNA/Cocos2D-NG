@@ -732,15 +732,12 @@ namespace CocosNG.Core.Nodes
 
         private bool m_bCleaned = false;
 
-        ~CCNode()
-        {
-            //unregisterScriptHandler();
-            Cleanup();
-            if(m_pChildren != null)
-                m_pChildren.Clear();
-            if(m_pChildrenByTag != null)
-                m_pChildrenByTag.Clear();
-        }
+        // No finalizer on purpose. The action manager and scheduler hold their targets strongly,
+        // so a node with running actions or schedules is never collected; a node that is
+        // collected has nothing to clean up. A finalizer calling Cleanup() would run on the GC's
+        // thread, touch the shared action manager and scheduler while the main thread uses them,
+        // throw without a director (which crashed the process), and could even clean up a scene
+        // that is still live (CCTransitionScene.Cleanup cleans its out-scene).
 
         public void GetPosition(out float x, out float y)
         {
@@ -1512,31 +1509,44 @@ namespace CocosNG.Core.Nodes
             return RunActionAsync(new CCSequence(actions), cancellationToken);
         }
 
+        // The stop, query, unschedule, pause and resume calls below do nothing when the node has
+        // no action manager or scheduler (made before the director, or headless in tests): there
+        // is nothing running to stop.
+
         public void StopAllActions()
         {
-            m_pActionManager.RemoveAllActionsFromTarget(this);
+            if (m_pActionManager != null)
+            {
+                m_pActionManager.RemoveAllActionsFromTarget(this);
+            }
         }
 
         public void StopAction(CCAction action)
         {
-            m_pActionManager.RemoveAction(action);
+            if (m_pActionManager != null)
+            {
+                m_pActionManager.RemoveAction(action);
+            }
         }
 
         public void StopActionByTag(int tag)
         {
             Debug.Assert(tag != (int) CCNodeTag.Invalid, "Invalid tag");
-            m_pActionManager.RemoveActionByTag(tag, this);
+            if (m_pActionManager != null)
+            {
+                m_pActionManager.RemoveActionByTag(tag, this);
+            }
         }
 
         public CCAction GetActionByTag(int tag)
         {
             Debug.Assert(tag != (int) CCNodeTag.Invalid, "Invalid tag");
-            return m_pActionManager.GetActionByTag(tag, this);
+            return m_pActionManager != null ? m_pActionManager.GetActionByTag(tag, this) : null;
         }
 
         public int NumberOfRunningActions()
         {
-            return m_pActionManager.NumberOfRunningActionsInTarget(this);
+            return m_pActionManager != null ? m_pActionManager.NumberOfRunningActionsInTarget(this) : 0;
         }
 
         #endregion
@@ -1568,7 +1578,10 @@ namespace CocosNG.Core.Nodes
 
         public void UnscheduleUpdate()
         {
-            m_pScheduler.UnscheduleUpdateForTarget(this);
+            if (m_pScheduler != null)
+            {
+                m_pScheduler.UnscheduleUpdateForTarget(this);
+            }
         }
 
         public void Schedule(Action<float> selector)
@@ -1597,7 +1610,7 @@ namespace CocosNG.Core.Nodes
         public void Unschedule(Action<float> selector)
         {
             // explicit nil handling
-            if (selector == null)
+            if (selector == null || m_pScheduler == null)
                 return;
 
             m_pScheduler.UnscheduleSelector(selector, this);
@@ -1605,19 +1618,34 @@ namespace CocosNG.Core.Nodes
 
         public void UnscheduleAllSelectors()
         {
-            m_pScheduler.UnscheduleAllForTarget(this);
+            if (m_pScheduler != null)
+            {
+                m_pScheduler.UnscheduleAllForTarget(this);
+            }
         }
 
         public void ResumeSchedulerAndActions()
         {
-            m_pScheduler.ResumeTarget(this);
-            m_pActionManager.ResumeTarget(this);
+            if (m_pScheduler != null)
+            {
+                m_pScheduler.ResumeTarget(this);
+            }
+            if (m_pActionManager != null)
+            {
+                m_pActionManager.ResumeTarget(this);
+            }
         }
 
         public void PauseSchedulerAndActions()
         {
-            m_pScheduler.PauseTarget(this);
-            m_pActionManager.PauseTarget(this);
+            if (m_pScheduler != null)
+            {
+                m_pScheduler.PauseTarget(this);
+            }
+            if (m_pActionManager != null)
+            {
+                m_pActionManager.PauseTarget(this);
+            }
         }
 
 
