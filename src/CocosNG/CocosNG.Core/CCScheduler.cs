@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using CocosNG;
@@ -231,6 +231,8 @@ namespace CocosNG.Core
 
         internal void update(float dt)
         {
+            CCTask.RunPendingOnMainThread();
+
             m_bUpdateHashLocked = true;
 
             try

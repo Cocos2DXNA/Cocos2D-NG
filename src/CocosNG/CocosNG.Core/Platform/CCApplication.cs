@@ -38,6 +38,14 @@ namespace CocosNG.Core
             CCDrawManager.InitializeDisplay(game, graphics, supportedOrientations);
         }
 
+        /// <summary>
+        /// Sets the supported display orientations (for scenes that lock orientation).
+        /// </summary>
+        public static void SetOrientation(DisplayOrientation supportedOrientations)
+        {
+            CCDrawManager.SetOrientation(supportedOrientations);
+        }
+
         public CCApplication(Game game, IGraphicsDeviceService service)
             : base(game)
         {

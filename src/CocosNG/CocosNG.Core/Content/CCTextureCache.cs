@@ -69,9 +69,7 @@ namespace CocosNG.Core.Content
 						CCLog.Log("Loaded texture: {0}", image.FileName);
                             if (!image.CancellationToken.IsCancellationRequested && image.Action != null)
                             {
-                                CCDirector.SharedDirector.Scheduler.ScheduleSelector(
-                                    f => image.Action(texture), this, 0, 0, 0, false
-                                    );
+                                CCTask.RunOnScheduler(() => image.Action(texture));
                             }
                             if (image.Completion != null)
                             {

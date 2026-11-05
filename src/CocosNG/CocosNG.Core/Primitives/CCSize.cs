@@ -114,11 +114,7 @@ namespace CocosNG.Core.Primitives
 
         public static CCSize Parse(string s)
         {
-#if !WINDOWS_PHONE && !XBOX && !NETFX_CORE
-            return (CCSize) TypeDescriptor.GetConverter(typeof (CCSize)).ConvertFromString(s);
-#else
-            return (CCSizeConverter.CCSizeFromString(s));
-#endif
+            return CCSizeConverter.CCSizeFromString(s);
         }
 
         /**

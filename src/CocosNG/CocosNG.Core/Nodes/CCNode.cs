@@ -1421,11 +1421,6 @@ namespace CocosNG.Core.Nodes
             }
         }
 
-        /// <summary>
-        /// Insertion order within a CCContainer; used to break z ties.
-        /// </summary>
-        internal int __seq_id;
-
         private readonly List<CCAction> _runningActions = new List<CCAction>();
 
         /// <summary>

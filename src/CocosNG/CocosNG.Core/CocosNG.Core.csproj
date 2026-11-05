@@ -5,6 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Mouse input is delivered as touches (desktop). Harmless on touch-only platforms. -->
+    <DefineConstants>$(DefineConstants);ENABLE_MOUSE</DefineConstants>
     <Configurations>Debug;Release;DebugWindows;DebugAndroid</Configurations>
   </PropertyGroup>
 

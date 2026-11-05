@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 #if WINDOWS_PHONE|| XBOX360
 using System.ComponentModel;
 #else
@@ -89,8 +89,24 @@ namespace CocosNG.Core
 
         public static void RunOnScheduler(Action action)
         {
-            var scheduler = CCDirector.SharedDirector.Scheduler;
-            scheduler.ScheduleSelector(f => action(), _taskSelector, 0, 0, 0, false);
+            // Thread-safe: runs on the main thread at the start of the next scheduler tick.
+            s_mainThreadQueue.Enqueue(action);
+        }
+
+        private static readonly System.Collections.Concurrent.ConcurrentQueue<Action> s_mainThreadQueue =
+            new System.Collections.Concurrent.ConcurrentQueue<Action>();
+
+        /// <summary>
+        /// Runs queued work on the calling (main) thread. Called by CCScheduler each tick, so
+        /// background tasks never touch the scheduler directly.
+        /// </summary>
+        internal static void RunPendingOnMainThread()
+        {
+            Action action;
+            while (s_mainThreadQueue.TryDequeue(out action))
+            {
+                action();
+            }
         }
 
         public static object RunAsync(Action action)
@@ -130,8 +146,7 @@ namespace CocosNG.Core
 
                     if (taskCompleted != null)
                     {
-                        var scheduler = CCDirector.SharedDirector.Scheduler;
-                        scheduler.ScheduleSelector(f => taskCompleted(null), _taskSelector, 0, 0, 0, false);
+                        RunOnScheduler(() => taskCompleted(null));
                     }
                 }
                 );

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -640,11 +640,7 @@ namespace CocosNG.Core.Primitives
 
         public static CCPoint Parse(string s)
         {
-#if !WINDOWS_PHONE && !XBOX && !NETFX_CORE
-            return (CCPoint) TypeDescriptor.GetConverter(typeof (CCPoint)).ConvertFromString(s);
-#else
-            return (CCPointConverter.CCPointFromString(s));
-#endif
+            return CCPointConverter.CCPointFromString(s);
         }
 
         public static implicit operator CCPoint(Vector2 point)
