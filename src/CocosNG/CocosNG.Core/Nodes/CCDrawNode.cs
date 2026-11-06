@@ -338,6 +338,25 @@ namespace CocosNG.Core.Nodes
             m_bDirty = true;
         }
 
+        /// <summary>
+        /// Adds one filled triangle with its own color at each corner, blended across the face.
+        /// The colors reach the GPU as given, so premultiply them by alpha for
+        /// <see cref="CCBlendFunc.AlphaBlend"/> (the default).
+        /// </summary>
+        public void DrawTriangle(CCPoint a, CCColor4B colorA, CCPoint b, CCColor4B colorB, CCPoint c, CCColor4B colorC)
+        {
+            m_pVertices.Add(new VertexPositionColor(new Vector3(a.X, a.Y, 0), colorA));
+            m_pVertices.Add(new VertexPositionColor(new Vector3(b.X, b.Y, 0), colorB));
+            m_pVertices.Add(new VertexPositionColor(new Vector3(c.X, c.Y, 0), colorC));
+            m_bDirty = true;
+        }
+
+        /// <summary>The number of vertices drawn (three per triangle).</summary>
+        public int VertexCount
+        {
+            get { return m_pVertices.Count; }
+        }
+
         /** Clear the geometry in the node's buffer. */
 
         public virtual void Clear()
@@ -345,6 +364,7 @@ namespace CocosNG.Core.Nodes
             m_pVertices.Clear();
             m_bDirty = true;
             _toDraw = null;
+            _toDrawCount = 0;
         }
 
         public bool FilterPrimitivesByAlpha
@@ -354,27 +374,32 @@ namespace CocosNG.Core.Nodes
         }
 
         private VertexPositionColor[] _toDraw;
+        private int _toDrawCount;
 
         public override void Draw()
         {
             if (m_bDirty)
             {
                 m_bDirty = false;
+                // The list's backing array is longer than its count, and after Clear() it still holds
+                // the old vertices, so draw only the first Count of them.
                 if (FilterPrimitivesByAlpha)
                 {
-                    _toDraw = m_pVertices.Elements.Where(x => x.Color.A > 0).ToArray();
+                    _toDraw = m_pVertices.Elements.Take(m_pVertices.Count).Where(x => x.Color.A > 0).ToArray();
+                    _toDrawCount = _toDraw.Length;
                 }
                 else
                 {
                     _toDraw = m_pVertices.Elements;
+                    _toDrawCount = m_pVertices.Count;
                 }
             }
 
-            if (_toDraw != null)
+            if (_toDraw != null && _toDrawCount >= 3)
             {
                 CCDrawManager.TextureEnabled = false;
                 CCDrawManager.BlendFunc(m_sBlendFunc);
-                CCDrawManager.DrawPrimitives(PrimitiveType.TriangleList, _toDraw, 0, _toDraw.Length / 3);
+                CCDrawManager.DrawPrimitives(PrimitiveType.TriangleList, _toDraw, 0, _toDrawCount / 3);
             }
         }
             #region Fluent API
