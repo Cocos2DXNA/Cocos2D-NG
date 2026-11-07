@@ -480,7 +480,18 @@ namespace CocosNG.Core
 #if (WINDOWS && !WINRT) || WINDOWSGL || MACOS || ENABLE_MOUSE
         private void ProcessMouse()
         {
-            ProcessMouse(Mouse.GetState());
+            ProcessMouse(ReadMouse());
+        }
+
+        /// <summary>
+        /// The mouse, read once a frame. Mouse.GetState by default; a host can override this with
+        /// a cheaper reading. On desktop GL, Mouse.GetState asks the OS for the global cursor
+        /// position on every call, which some machines make slow (milliseconds), enough to drop
+        /// frames.
+        /// </summary>
+        protected virtual MouseState ReadMouse()
+        {
+            return Mouse.GetState();
         }
 
         /// <summary>
