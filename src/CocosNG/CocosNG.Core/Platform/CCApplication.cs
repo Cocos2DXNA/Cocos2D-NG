@@ -185,7 +185,8 @@ namespace CocosNG.Core
             {
                 CCInputState.Instance.Update(1f / (float)gameTime.ElapsedGameTime.Milliseconds);
 #if (WINDOWS && !WINRT) || WINDOWSGL || MACOS || ENABLE_MOUSE
-                ProcessMouse(CCInputState.Instance.Mouse);
+                if (ReadsTouches) ProcessTouch(CCInputState.Instance.TouchState);
+                else ProcessMouse(CCInputState.Instance.Mouse);
 #else
                 ProcessTouch(CCInputState.Instance.TouchState);
 #endif
@@ -203,7 +204,8 @@ namespace CocosNG.Core
             {
                 // Process touch events 
 #if (WINDOWS && !WINRT) || WINDOWSGL || MACOS || ENABLE_MOUSE
-                ProcessMouse();
+                if (ReadsTouches) ProcessTouch();
+                else ProcessMouse();
 #else
                 ProcessTouch();
 #endif
@@ -492,6 +494,16 @@ namespace CocosNG.Core
         protected virtual MouseState ReadMouse()
         {
             return Mouse.GetState();
+        }
+
+        /// <summary>
+        /// True to take input from the touch panel instead of the mouse. The engine is built with
+        /// mouse input (ENABLE_MOUSE) so one build serves desktop and mobile; a touch host (Android,
+        /// iOS) overrides this to get every finger as its own touch.
+        /// </summary>
+        protected virtual bool ReadsTouches
+        {
+            get { return false; }
         }
 
         /// <summary>
