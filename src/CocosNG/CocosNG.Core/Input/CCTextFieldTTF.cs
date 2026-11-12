@@ -25,6 +25,8 @@ namespace CocosNG.Core.Input
         }
     }
 
+    public delegate void CCTextFieldTTFDelegate(object sender, ref string text, ref bool canceled);
+
     public class CCTextFieldTTF : CCLabelTTF, ICCTargetedTouchDelegate
     {
         private IAsyncResult m_pGuideShowHandle;

@@ -723,64 +723,47 @@ namespace CocosNG.Core.Nodes.Particles
         /// <returns></returns>
         private static byte[] Inflate(byte[] dataBytes)
         {
-
-            byte[] outputBytes = null;
-            var zipInputStream = new ZipInputStream(new MemoryStream(dataBytes));
-
-            if (zipInputStream.CanDecompressEntry) {
-
-                MemoryStream zipoutStream = new MemoryStream();
-#if XBOX
-                byte[] buf = new byte[4096];
-                int amt = -1;
-                while (true)
+            try
+            {
+                using (var output = new MemoryStream())
                 {
-                    amt = zipInputStream.Read(buf, 0, buf.Length);
-                    if (amt == -1)
+                    if (dataBytes.Length > 4 && dataBytes[0] == 0x50 && dataBytes[1] == 0x4B && dataBytes[2] == 0x03 && dataBytes[3] == 0x04)
                     {
-                        break;
+                        // ZIP archive: the image is the first entry
+                        using (var archive = new System.IO.Compression.ZipArchive(new MemoryStream(dataBytes), System.IO.Compression.ZipArchiveMode.Read))
+                        {
+                            if (archive.Entries.Count == 0)
+                            {
+                                return null;
+                            }
+                            using (var entry = archive.Entries[0].Open())
+                            {
+                                entry.CopyTo(output);
+                            }
+                        }
                     }
-                    zipoutStream.Write(buf, 0, amt);
-                }
-#else
-                zipInputStream.CopyTo(zipoutStream);
-#endif
-                outputBytes = zipoutStream.ToArray();
-            }
-            else {
-
-                try {
-                var gzipInputStream = 
-                    new GZipInputStream(new MemoryStream(dataBytes));
-
-
-                MemoryStream zipoutStream = new MemoryStream();
-
-#if XBOX
-                byte[] buf = new byte[4096];
-                int amt = -1;
-                while (true)
-                {
-                    amt = gzipInputStream.Read(buf, 0, buf.Length);
-                    if (amt == -1)
+                    else if (dataBytes.Length > 2 && dataBytes[0] == 0x1F && dataBytes[1] == 0x8B)
                     {
-                        break;
+                        using (var gzip = new System.IO.Compression.GZipStream(new MemoryStream(dataBytes), System.IO.Compression.CompressionMode.Decompress))
+                        {
+                            gzip.CopyTo(output);
+                        }
                     }
-                    zipoutStream.Write(buf, 0, amt);
+                    else
+                    {
+                        using (var zlib = new System.IO.Compression.ZLibStream(new MemoryStream(dataBytes), System.IO.Compression.CompressionMode.Decompress))
+                        {
+                            zlib.CopyTo(output);
+                        }
+                    }
+                    return output.ToArray();
                 }
-#else
-                gzipInputStream.CopyTo(zipoutStream);
-#endif
-                outputBytes = zipoutStream.ToArray();
-                }
-                catch (Exception exc)
-                {
-                    CCLog.Log("Error decompressing image data: " + exc.Message);
-                }
-
             }
-
-            return outputBytes;
+            catch (Exception exc)
+            {
+                CCLog.Log("Error decompressing image data: " + exc.Message);
+                return null;
+            }
         }
 
         public virtual bool InitWithTotalParticles(int numberOfParticles)

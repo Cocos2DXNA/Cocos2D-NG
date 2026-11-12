@@ -1,62 +1,21 @@
-using CocosNG.Core.Input;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Numerics;
-using CocosNG.Core.Primitives;
-using CocosNG.Core.Actions;
-
 namespace CocosNG.Core.Nodes
 {
-
+    /// <summary>
+    /// Fluent helpers for building node trees. Children live in CCNode's own child list,
+    /// so drawing, z-ordering and the node lifecycle work as usual.
+    /// </summary>
     public class CCContainer : CCNode
     {
-
-        public IList<CCNode> Children { get; }
-
-        public CCContainer AddChild(CCNode child, float z = 0f) {
-            child.Parent = this;
-            child.Z = z;
-            child.__seq_id = Children.Count;
-            int lo = 0;
-            int hi = Children.Count;
-
-            while (lo < hi)
-            {
-                int mid = (lo + hi) / 2;
-                if (Children[mid].Z < z)
-                    lo = mid + 1;
-                else
-                    hi = mid;
-            }
-
-            Children.Insert(lo, child);
+        public CCContainer Add(CCNode child, int zOrder = 0)
+        {
+            AddChild(child, zOrder);
             return this;
         }
 
-        public CCContainer Add(CCNode child, float z = 0f)
+        public CCContainer Remove(CCNode child, bool cleanup = true)
         {
-            AddChild(child, z);
+            RemoveChild(child, cleanup);
             return this;
         }
-
-        public CCContainer RemoveChild(CCNode child)
-        {
-            Children.Remove(child);
-            return this;
-        }
-
-        public CCContainer Remove(CCNode child)
-        {
-            RemoveChild(child);
-            return this;
-        }
-
-        public CCContainer()
-        {
-            Children = new List<CCNode>();
-        }
-
     }
 }

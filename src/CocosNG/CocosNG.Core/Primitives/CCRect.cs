@@ -270,11 +270,7 @@ namespace CocosNG.Core.Primitives
 
         public static CCRect Parse(string s)
         {
-#if !WINDOWS_PHONE && !XBOX && !NETFX_CORE
-            return (CCRect) TypeDescriptor.GetConverter(typeof (CCRect)).ConvertFromString(s);
-#else
-            return (CCRectConverter.CCRectFromString(s));
-#endif
+            return CCRectConverter.CCRectFromString(s);
         }
     }
 }

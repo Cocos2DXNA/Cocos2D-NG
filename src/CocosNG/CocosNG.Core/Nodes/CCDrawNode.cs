@@ -1,11 +1,9 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
-using CocosNG.Core;
-using CocosNG.Core.Primitives;
 
 namespace CocosNG.Core.Nodes
 {
@@ -24,12 +22,6 @@ namespace CocosNG.Core.Nodes
         {
             get { return m_sBlendFunc; }
             set { m_sBlendFunc = value; }
-        }
-
-        public CCDrawNode WithBlendFunc(CCBlendFunc blendFunc)
-        {
-            BlendFunc = blendFunc;
-            return this;
         }
 
         public override bool Init()
@@ -62,12 +54,6 @@ namespace CocosNG.Core.Nodes
             m_pVertices.Add(d);
 
             m_bDirty = true;
-        }
-
-        public CCDrawNode DrawDotAnd(CCPoint pos, float radius, CCColor4F color)
-        {
-            DrawDot(pos, radius, color);
-            return this;
         }
         
         /// <summary>
@@ -129,10 +115,313 @@ namespace CocosNG.Core.Nodes
             return (returnIndex);
         }
 
+        public virtual void FadeBySegment(int vertexStart, float fadeFactor) 
+        {
+            FadeByVertices(vertexStart, 18, fadeFactor);
+        }
+
+        public virtual void FadeToSegment(int vertexStart, float fadeFactor)
+        {
+            FadeToVertices(vertexStart, 18, fadeFactor);
+        }
+
+        public virtual void RemoveSegment(int vertexStart) 
+        {
+            if (m_pVertices.Count == 18)
+            {
+                m_pVertices.Clear();
+            }
+            else
+            {
+                m_pVertices.RemoveRange(vertexStart, 18);
+            }
+            m_bDirty = true;
+        }
+
+        /// <summary>
+        /// Multiplicatively applies the fadeFactor to the alpha channel of the vertices starting
+        /// with start and for the number of vertices defined by count. the alpha channel is
+        /// determined by the current alpha * fadeFactor.
+        /// </summary>
+        /// <param name="start"></param>
+        /// <param name="count"></param>
+        /// <param name="fadeFactor"></param>
+        public virtual void FadeByVertices(int start, int count, float fadeFactor)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                VertexPositionColor vpc = m_pVertices[start + i];
+                Color c = vpc.Color;
+                vpc.Color = new Color(c.R, c.G, c.B, (byte)(c.A * fadeFactor));
+                m_pVertices[start + i] = vpc;
+            }
+            m_bDirty = true;
+        }
+
+        /// <summary>
+        /// For the start and count vertices drawn, this will set the alpha channel to the given fade factor.
+        /// The alpha is determined by 255 * fadeFactor.
+        /// </summary>
+        /// <param name="start"></param>
+        /// <param name="count"></param>
+        /// <param name="fadeFactor"></param>
+        public virtual void FadeToVertices(int start, int count, float fadeFactor)
+        {
+            for (int i = 0; i < count; i++)
+            {
+                VertexPositionColor vpc = m_pVertices[start + i];
+                Color c = vpc.Color;
+                vpc.Color = new Color(c.R, c.G, c.B, (byte)(255f * fadeFactor));
+                m_pVertices[start + i] = vpc;
+            }
+            m_bDirty = true;
+        }
+
+        /** draw a polygon with a fill color and line color */
+
+        private struct ExtrudeVerts
+        {
+            public CCPoint offset;
+            public CCPoint n;
+        }
+
+        public void DrawCircleOutline(CCPoint center, float radius, float lineWidth, CCColor4B color)
+        {
+            DrawCircleOutline(center, radius, lineWidth, CCMacros.CCDegreesToRadians(360f), 360, color);
+        }
+
+        public void DrawCircleOutline(CCPoint center, float radius, float lineWidth, float angle, int segments, CCColor4B color)
+        {
+            float increment = MathHelper.Pi * 2.0f / segments;
+            double theta = 0.0;
+
+            CCPoint v1;
+            CCPoint v2 = CCPoint.Zero;
+            CCColor4F cf = new CCColor4F(color.R / 255f, color.G / 255f, color.B / 255f, color.A / 255f);
+
+            for (int i = 0; i < segments; i++)
+            {
+                v1 = center + new CCPoint((float)Math.Cos(theta), (float)Math.Sin(theta)) * radius;
+                v2 = center + new CCPoint((float)Math.Cos(theta + increment), (float)Math.Sin(theta + increment)) * radius;
+                DrawSegment(v1, v2, lineWidth, cf);
+                theta += increment;
+            }
+        }
+
+        public void DrawCircle(CCPoint center, float radius, CCColor4B color)
+        {
+            DrawCircle(center, radius, CCMacros.CCDegreesToRadians(360f), 360, color);
+        }
+
+
+        public void DrawCircle(CCPoint center, float radius, float angle, int segments, CCColor4B color)
+        {
+            float increment = MathHelper.Pi * 2.0f / segments;
+            double theta = 0.0;
+
+            CCPoint v1;
+            CCPoint v2 = CCPoint.Zero;
+            List<CCPoint> verts = new List<CCPoint>();
+
+            for (int i = 0; i < segments; i++)
+            {
+                v1 = center + new CCPoint((float)Math.Cos(theta), (float)Math.Sin(theta)) * radius;
+                v2 = center + new CCPoint((float)Math.Cos(theta + increment), (float)Math.Sin(theta + increment)) * radius;
+                verts.Add(v1);
+                theta += increment;
+            }
+            CCColor4F cf = new CCColor4F(color.R/255f, color.G/255f, color.B/255f, color.A/255f);
+            DrawPolygon(verts.ToArray(), verts.Count, cf, 0, new CCColor4F(0f, 0f, 0f, 0f));
+        }
+
+        public void DrawRect(CCRect rect, CCColor4B color)
+        {
+            float x1 = rect.MinX;
+            float y1 = rect.MinY;
+            float x2 = rect.MaxX;
+            float y2 = rect.MaxY;
+            CCPoint[] pt = new CCPoint[] { 
+                new CCPoint(x1,y1), new CCPoint(x2,y1), new CCPoint(x2,y2), new CCPoint(x1,y2)
+            };
+            CCColor4F cf = new CCColor4F(color.R/255f, color.G/255f, color.B/255f, color.A/255f);
+            DrawPolygon(pt, 4, cf, 0, new CCColor4F(0f, 0f, 0f, 0f));
+        }
+
+		public void DrawRect(CCRect rect, CCColor4F color, float borderWidth, CCColor4F borderColor)
+		{
+			float x1 = rect.MinX;
+			float y1 = rect.MinY;
+			float x2 = rect.MaxX;
+			float y2 = rect.MaxY;
+			CCPoint[] pt = new CCPoint[] { 
+				new CCPoint(x1,y1), new CCPoint(x2,y1), new CCPoint(x2,y2), new CCPoint(x1,y2)
+			};
+			DrawPolygon(pt, 4, color, borderWidth, borderColor);
+		}
+
+        public void DrawPolygon(CCPoint[] verts, int count, CCColor4F fillColor, float borderWidth,
+                                CCColor4F borderColor)
+        {
+            var extrude = new ExtrudeVerts[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                var v0 = verts[(i - 1 + count) % count];
+                var v1 = verts[i];
+                var v2 = verts[(i + 1) % count];
+
+                var n1 = CCPoint.Normalize(CCPoint.Perp(v1 - v0));
+                var n2 = CCPoint.Normalize(CCPoint.Perp(v2 - v1));
+
+                var offset = (n1 + n2) * (1.0f / (CCPoint.Dot(n1, n2) + 1.0f));
+                extrude[i] = new ExtrudeVerts() {offset = offset, n = n2};
+            }
+
+            bool outline = (fillColor.A > 0.0f && borderWidth > 0.0f);
+
+            float inset = (!outline ? 0.5f : 0.0f);
+            
+            for (int i = 0; i < count - 2; i++)
+            {
+                var v0 = verts[0] - (extrude[0].offset * inset);
+                var v1 = verts[i + 1] - (extrude[i + 1].offset * inset);
+                var v2 = verts[i + 2] - (extrude[i + 2].offset * inset);
+
+                m_pVertices.Add(new VertexPositionColor(v0, fillColor)); //__t(v2fzero)
+                m_pVertices.Add(new VertexPositionColor(v1, fillColor)); //__t(v2fzero)
+                m_pVertices.Add(new VertexPositionColor(v2, fillColor)); //__t(v2fzero)
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                int j = (i + 1) % count;
+                var v0 = verts[i];
+                var v1 = verts[j];
+
+                var n0 = extrude[i].n;
+
+                var offset0 = extrude[i].offset;
+                var offset1 = extrude[j].offset;
+
+                if (outline)
+                {
+                    var inner0 = (v0 - (offset0 * borderWidth));
+                    var inner1 = (v1 - (offset1 * borderWidth));
+                    var outer0 = (v0 + (offset0 * borderWidth));
+                    var outer1 = (v1 + (offset1 * borderWidth));
+
+                    m_pVertices.Add(new VertexPositionColor(inner0, borderColor)); //__t(v2fneg(n0))
+                    m_pVertices.Add(new VertexPositionColor(inner1, borderColor)); //__t(v2fneg(n0))
+                    m_pVertices.Add(new VertexPositionColor(outer1, borderColor)); //__t(n0)
+
+                    m_pVertices.Add(new VertexPositionColor(inner0, borderColor)); //__t(v2fneg(n0))
+                    m_pVertices.Add(new VertexPositionColor(outer0, borderColor)); //__t(n0)
+                    m_pVertices.Add(new VertexPositionColor(outer1, borderColor)); //__t(n0)
+                }
+                else
+                {
+                    var inner0 = (v0 - (offset0 * 0.5f));
+                    var inner1 = (v1 - (offset1 * 0.5f));
+                    var outer0 = (v0 + (offset0 * 0.5f));
+                    var outer1 = (v1 + (offset1 * 0.5f));
+
+                    m_pVertices.Add(new VertexPositionColor(inner0, fillColor)); //__t(v2fzero)
+                    m_pVertices.Add(new VertexPositionColor(inner1, fillColor)); //__t(v2fzero)
+                    m_pVertices.Add(new VertexPositionColor(outer1, fillColor)); //__t(n0)
+
+                    m_pVertices.Add(new VertexPositionColor(inner0, fillColor)); //__t(v2fzero)
+                    m_pVertices.Add(new VertexPositionColor(outer0, fillColor)); //__t(n0)
+                    m_pVertices.Add(new VertexPositionColor(outer1, fillColor)); //__t(n0)
+                }
+            }
+
+            m_bDirty = true;
+        }
+
+        /// <summary>
+        /// Adds one filled triangle with its own color at each corner, blended across the face.
+        /// The colors reach the GPU as given, so premultiply them by alpha for
+        /// <see cref="CCBlendFunc.AlphaBlend"/> (the default).
+        /// </summary>
+        public void DrawTriangle(CCPoint a, CCColor4B colorA, CCPoint b, CCColor4B colorB, CCPoint c, CCColor4B colorC)
+        {
+            m_pVertices.Add(new VertexPositionColor(new Vector3(a.X, a.Y, 0), colorA));
+            m_pVertices.Add(new VertexPositionColor(new Vector3(b.X, b.Y, 0), colorB));
+            m_pVertices.Add(new VertexPositionColor(new Vector3(c.X, c.Y, 0), colorC));
+            m_bDirty = true;
+        }
+
+        /// <summary>The number of vertices drawn (three per triangle).</summary>
+        public int VertexCount
+        {
+            get { return m_pVertices.Count; }
+        }
+
+        /** Clear the geometry in the node's buffer. */
+
+        public virtual void Clear()
+        {
+            m_pVertices.Clear();
+            m_bDirty = true;
+            _toDraw = null;
+            _toDrawCount = 0;
+        }
+
+        public bool FilterPrimitivesByAlpha
+        {
+            get;
+            set;
+        }
+
+        private VertexPositionColor[] _toDraw;
+        private int _toDrawCount;
+
+        public override void Draw()
+        {
+            if (m_bDirty)
+            {
+                m_bDirty = false;
+                // The list's backing array is longer than its count, and after Clear() it still holds
+                // the old vertices, so draw only the first Count of them.
+                if (FilterPrimitivesByAlpha)
+                {
+                    _toDraw = m_pVertices.Elements.Take(m_pVertices.Count).Where(x => x.Color.A > 0).ToArray();
+                    _toDrawCount = _toDraw.Length;
+                }
+                else
+                {
+                    _toDraw = m_pVertices.Elements;
+                    _toDrawCount = m_pVertices.Count;
+                }
+            }
+
+            if (_toDraw != null && _toDrawCount >= 3)
+            {
+                CCDrawManager.TextureEnabled = false;
+                CCDrawManager.BlendFunc(m_sBlendFunc);
+                CCDrawManager.DrawPrimitives(PrimitiveType.TriangleList, _toDraw, 0, _toDrawCount / 3);
+            }
+        }
+            #region Fluent API
+
+        public CCDrawNode WithBlendFunc(CCBlendFunc blendFunc)
+        {
+            BlendFunc = blendFunc;
+            return this;
+        }
+
+        public CCDrawNode DrawDotAnd(CCPoint pos, float radius, CCColor4F color)
+        {
+            DrawDot(pos, radius, color);
+            return this;
+        }
+
         public CCDrawNode DrawSegmentAnd(CCPoint from, CCPoint to, float radius, CCColor4F color)
         {
             DrawSegment(from, to, radius, color);
             return this;
         }
+
+        #endregion
     }
 }

@@ -125,14 +125,14 @@ namespace CocosNG.Core.Nodes
             _cascadeOpacityEnabled = false;
         }
 
-        public override CCNode Init()
+        public override bool Init()
         {
             base.Init();
             _displayedOpacity = _realOpacity = 255;
             _displayedColor = _realColor = CCTypes.CCWhite;
             _cascadeOpacityEnabled = _cascadeColorEnabled = false;
             
-            return this;
+            return true;
         }
 
         public virtual void UpdateDisplayedColor(CCColor3B parentColor)

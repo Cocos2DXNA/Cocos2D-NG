@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using CocosNG.Core;
 
 namespace CocosNG.Core.UI
@@ -160,7 +160,7 @@ namespace CocosNG.Core.UI
             return this;
         }
 
-        public override void Selected()
+        public override CCMenuItem Selected()
         {
             base.Selected();
 
@@ -197,9 +197,10 @@ namespace CocosNG.Core.UI
                     }
                 }
             }
+            return this;
         }
 
-        public override void Unselected()
+        public override CCMenuItem Unselected()
         {
             base.Unselected();
             if (m_pNormalImage != null)
@@ -223,9 +224,10 @@ namespace CocosNG.Core.UI
                     m_pDisabledImage.Visible = false;
                 }
             }
+            return this;
         }
 
-        public override void Activate()
+        public override CCMenuItem Activate()
         {
             if (m_bIsEnabled)
             {
@@ -236,6 +238,7 @@ namespace CocosNG.Core.UI
                 }
                 base.Activate();
             }
+            return this;
         }
 
         // Helper 

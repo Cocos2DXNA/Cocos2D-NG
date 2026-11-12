@@ -20,9 +20,16 @@ namespace Box2D.Viewer
         private readonly Brush _overlayBrush = new SolidBrush(Color.FromArgb(230, 235, 240));
         private readonly Pen _debugPen = new Pen(Color.FromArgb(220, 200, 200, 200), 1.5f);
 
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public b2World World { get; set; }
+
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public DebugDraw.DebugText[] OverlayText { get; set; }
+
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public DebugDraw.DebugSegment[] DebugSegments { get; set; }
+
+        [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
         public DebugDraw.DebugPoint[] DebugPoints { get; set; }
 
         public WorldView()
