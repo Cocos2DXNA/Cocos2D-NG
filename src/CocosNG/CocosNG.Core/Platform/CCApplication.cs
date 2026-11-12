@@ -509,6 +509,9 @@ namespace CocosNG.Core
         /// <summary>
         /// True when the game's window has focus and the cursor is inside it. The mouse state is
         /// global, so without this a click anywhere on the desktop became a touch in the game.
+        /// Measured against the backbuffer, in the same pixels as the mouse reading that
+        /// ScreenToWorld takes: a host that draws more pixels than the window has points (a Retina
+        /// Mac) scales its reading to match.
         /// </summary>
         private bool IsMouseOverActiveWindow(MouseState mouse)
         {
@@ -516,8 +519,8 @@ namespace CocosNG.Core
             {
                 return false;
             }
-            var bounds = Game.Window.ClientBounds;
-            return mouse.X >= 0 && mouse.Y >= 0 && mouse.X < bounds.Width && mouse.Y < bounds.Height;
+            var pp = Game.GraphicsDevice.PresentationParameters;
+            return mouse.X >= 0 && mouse.Y >= 0 && mouse.X < pp.BackBufferWidth && mouse.Y < pp.BackBufferHeight;
         }
 
         private void ProcessMouse(MouseState mouse)
